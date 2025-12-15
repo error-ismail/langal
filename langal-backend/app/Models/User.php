@@ -96,6 +96,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Relationship with data operator profile
+     */
+    public function dataOperator()
+    {
+        return $this->hasOne(DataOperator::class, 'user_id', 'user_id');
+    }
+
+    /**
      * Relationship with OTPs
      */
     public function otps()
