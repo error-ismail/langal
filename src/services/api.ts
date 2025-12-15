@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000/api';
+// Resolve base API from Vite env with sensible default
+const API_URL = (
+    (import.meta as unknown as { env?: Record<string, string | undefined> })?.env?.VITE_API_BASE
+    || 'http://127.0.0.1:8000/api'
+).replace(/\/$/, '');
 
 const api = axios.create({
     baseURL: API_URL,
