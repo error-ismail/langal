@@ -132,6 +132,7 @@ const SoilTestCollection = () => {
     try {
       setLoading(true);
       const response = await api.get('/data-operator/soil-tests');
+      console.log('Fetched soil test reports:', response.data.data);
       setReports(response.data.data || []);
     } catch (error: any) {
       console.error('Error fetching reports:', error);
@@ -716,13 +717,20 @@ const SoilTestCollection = () => {
                           <div className="flex-1">
                             <h3 className="font-semibold text-lg">{report.village}</h3>
                             <p className="text-sm text-gray-600">
-                              {report.location_info?.upazila_bn}, {report.location_info?.district_bn}
+                              {report.location_info?.upazila_bn && `${report.location_info.upazila_bn}, `}
+                              {report.location_info?.district_bn}
+                              {report.postal_code && ` (ডাকঘর: ${report.postal_code})`}
                             </p>
                             {report.farmer_name && (
-                              <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                                <User className="h-3 w-3" />
-                                {report.farmer_name} {report.farmer_phone && `- ${report.farmer_phone}`}
-                              </p>
+                              <div className="mt-2 p-2 bg-blue-50 rounded">
+                                <p className="text-sm font-medium flex items-center gap-1">
+                                  <User className="h-3 w-3 text-blue-600" />
+                                  {report.farmer_name}
+                                </p>
+                                {report.farmer_phone && (
+                                  <p className="text-xs text-gray-600 ml-4">📱 {report.farmer_phone}</p>
+                                )}
+                              </div>
                             )}
                           </div>
                           {report.health_rating && (
@@ -803,16 +811,26 @@ const SoilTestCollection = () => {
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4">
                 <h3 className="font-semibold text-lg mb-2">{selectedReport.village}</h3>
                 <p className="text-sm text-gray-600">
-                  {selectedReport.location_info?.division_bn} › {selectedReport.location_info?.district_bn} › {selectedReport.location_info?.upazila_bn}
+                  {selectedReport.location_info?.division_bn && `${selectedReport.location_info.division_bn} › `}
+                  {selectedReport.location_info?.district_bn && `${selectedReport.location_info.district_bn} › `}
+                  {selectedReport.location_info?.upazila_bn}
                 </p>
+                {selectedReport.postal_code && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    📮 ডাকঘর কোড: {selectedReport.postal_code}
+                    {selectedReport.location_info?.post_office_bn && ` (${selectedReport.location_info.post_office_bn})`}
+                  </p>
+                )}
                 {selectedReport.farmer_name && (
                   <div className="mt-3 pt-3 border-t border-green-200">
-                    <p className="text-sm text-gray-500">কৃষকের তথ্য</p>
-                    <p className="font-medium flex items-center gap-2 mt-1">
+                    <p className="text-sm text-gray-500 mb-1">কৃষকের তথ্য</p>
+                    <p className="font-medium flex items-center gap-2">
                       <User className="h-4 w-4 text-green-600" />
                       {selectedReport.farmer_name}
-                      {selectedReport.farmer_phone && ` - ${selectedReport.farmer_phone}`}
                     </p>
+                    {selectedReport.farmer_phone && (
+                      <p className="text-sm text-gray-600 ml-6">📱 {selectedReport.farmer_phone}</p>
+                    )}
                   </div>
                 )}
               </div>
