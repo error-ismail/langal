@@ -7,6 +7,6 @@ export function cn(...inputs: ClassValue[]) {
 
 // Utility function to get asset paths that work both locally and on GitHub Pages
 export function getAssetPath(path: string) {
-  const basePath = import.meta.env.PROD ? "/langal-prototype" : "";
+  const basePath = "";
   return `${basePath}${path}`;
 }

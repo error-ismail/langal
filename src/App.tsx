@@ -50,7 +50,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const queryClient = new QueryClient();
 
 // Get the base path for GitHub Pages
-const basename = import.meta.env.PROD ? "/langal-prototype" : "";
+const basename = "";
 
 const OfflineSyncHandler = () => {
   const { toast } = useToast();
