@@ -35,10 +35,7 @@ import {
     toBengaliNumber,
     CompleteWeatherData
 } from "@/services/weatherService";
-import { API_URL } from "@/services/api";
-
-// API Base URL for images
-const API_BASE_URL = API_URL.replace(/\/api\/?$/, '');
+import { getProfilePhotoUrl } from "@/lib/utils";
 
 // Import dashboard icons
 import socialFeedIcon from "@/assets/dashboard-icons/social-feed.png";
@@ -88,17 +85,6 @@ const FarmerDashboard = () => {
         { name: "গম", price: "৪৫", unit: "কেজি", trend: "down" },
         { name: "আলু", price: "২২", unit: "কেজি", trend: "up" },
     ];
-
-    // Profile photo URL helper
-    const getProfilePhotoUrl = (photoPath: string | undefined): string | undefined => {
-        if (!photoPath) return undefined;
-        // If already a full URL, return as is
-        if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) {
-            return photoPath;
-        }
-        // Otherwise, prepend API base URL
-        return `${API_BASE_URL}${photoPath.startsWith('/') ? '' : '/'}${photoPath}`;
-    };
 
     // রাত কিনা চেক করার হেল্পার
     const isNightTime = (): boolean => {

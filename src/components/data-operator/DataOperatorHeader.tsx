@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { getProfilePhotoUrl } from "@/lib/utils";
 import { 
     UserCheck, 
     Bell, 
@@ -100,7 +101,7 @@ const DataOperatorHeader = () => {
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" className="flex items-center gap-2 px-2">
                                         <Avatar className="h-9 w-9 border-2 border-orange-200">
-                                            <AvatarImage src={user?.profilePhoto} alt={user?.name} />
+                                            <AvatarImage src={getProfilePhotoUrl(user?.profilePhoto)} alt={user?.name} />
                                             <AvatarFallback className="bg-orange-100 text-orange-800">
                                                 {user?.name?.charAt(0) || 'D'}
                                             </AvatarFallback>

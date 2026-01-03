@@ -31,10 +31,7 @@ import {
     toBengaliNumber,
     CompleteWeatherData
 } from "@/services/weatherService";
-import { API_URL } from "@/services/api";
-
-// API Base URL for images
-const API_BASE_URL = API_URL.replace(/\/api\/?$/, '');
+import { getProfilePhotoUrl } from "@/lib/utils";
 
 // Import dashboard icons
 import socialFeedIcon from "@/assets/dashboard-icons/social-feed.png";
@@ -53,15 +50,6 @@ const CustomerDashboard = () => {
     const [weatherLoading, setWeatherLoading] = useState(true);
     const [weatherError, setWeatherError] = useState<string | null>(null);
 
-    // Profile photo URL helper
-    const getProfilePhotoUrl = (photoPath: string | undefined): string | undefined => {
-        if (!photoPath) return undefined;
-        if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) {
-            return photoPath;
-        }
-        return `${API_BASE_URL}${photoPath.startsWith('/') ? '' : '/'}${photoPath}`;
-    };
-
     // রাত কিনা চেক করার হেল্পার
     const isNightTime = (): boolean => {
         const hour = new Date().getHours();
@@ -72,6 +60,7 @@ const CustomerDashboard = () => {
     const getWeatherIcon = (condition: string) => {
         const c = condition.toLowerCase();
         const isNight = isNightTime();
+
 
         if (c.includes('পরিষ্কার') || c.includes('clear')) {
             return isNight
