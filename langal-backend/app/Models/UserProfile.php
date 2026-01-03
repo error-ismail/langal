@@ -57,9 +57,16 @@ class UserProfile extends Model
 
             try {
                 // Try to use the Storage facade
-                return \Illuminate\Support\Facades\Storage::url($this->profile_photo_url);
+                $url = \Illuminate\Support\Facades\Storage::url($this->profile_photo_url);
+                
+                // If the generated URL is localhost (misconfiguration) but we have Azure credentials, force Azure
+                if (str_contains($url, 'localhost') && config('filesystems.disks.azure.name')) {
+                    throw new \Exception('Localhost URL detected with Azure config present');
+                }
+                
+                return $url;
             } catch (\Exception $e) {
-                // Fallback: Manually construct the Azure URL if Storage::url fails
+                // Fallback: Manually construct the Azure URL if Storage::url fails or returns localhost
                 $accountName = config('filesystems.disks.azure.name');
                 $container = config('filesystems.disks.azure.container');
                 

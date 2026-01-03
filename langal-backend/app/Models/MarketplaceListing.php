@@ -71,7 +71,14 @@ class MarketplaceListing extends Model
                 return $image;
             }
             try {
-                return \Illuminate\Support\Facades\Storage::url($image);
+                $url = \Illuminate\Support\Facades\Storage::url($image);
+                
+                // If the generated URL is localhost (misconfiguration) but we have Azure credentials, force Azure
+                if (str_contains($url, 'localhost') && config('filesystems.disks.azure.name')) {
+                    throw new \Exception('Localhost URL detected with Azure config present');
+                }
+                
+                return $url;
             } catch (\Exception $e) {
                 // Fallback: Manually construct the Azure URL
                 $accountName = config('filesystems.disks.azure.name');
