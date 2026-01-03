@@ -115,7 +115,7 @@ const ExpertRegistration = ({ onBackToMainRegister }: ExpertRegistrationProps) =
     const handleFileChange = (field: 'profilePhoto' | 'certificationPhoto', file: File | null) => {
         if (file) {
             setFormData(prev => ({ ...prev, [field]: file }));
-            
+
             // Create preview
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -151,7 +151,7 @@ const ExpertRegistration = ({ onBackToMainRegister }: ExpertRegistrationProps) =
             const response = await fetch(`${API_BASE}/expert/send-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     phone: formData.phone,
                     purpose: 'register'
                 }),
@@ -379,19 +379,19 @@ const ExpertRegistration = ({ onBackToMainRegister }: ExpertRegistrationProps) =
             requestFormData.append('village', formData.location?.village || '');
             requestFormData.append('postalCode', formData.location?.postal_code?.toString() || '');
             requestFormData.append('otp_code', otp);
-            
+
             // Expert specific fields
             requestFormData.append('qualification', formData.qualification);
             requestFormData.append('specialization', formData.specialization);
             requestFormData.append('experienceYears', formData.experienceYears);
             requestFormData.append('institution', formData.institution);
-            
+
             // Optional fields
             if (formData.consultationFee) requestFormData.append('consultationFee', formData.consultationFee);
             if (formData.licenseNumber) requestFormData.append('licenseNumber', formData.licenseNumber);
             if (formData.availability) requestFormData.append('availability', formData.availability);
             if (formData.bio) requestFormData.append('bio', formData.bio);
-            
+
             // File uploads
             if (formData.profilePhoto) requestFormData.append('profilePhoto', formData.profilePhoto);
             if (formData.certificationPhoto) requestFormData.append('certificationPhoto', formData.certificationPhoto);
@@ -465,7 +465,7 @@ const ExpertRegistration = ({ onBackToMainRegister }: ExpertRegistrationProps) =
             const response = await fetch(`${API_BASE}/expert/resend-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     phone: formData.phone,
                     purpose: 'register'
                 }),
@@ -502,7 +502,7 @@ const ExpertRegistration = ({ onBackToMainRegister }: ExpertRegistrationProps) =
         e.preventDefault();
 
         // Validation
-        if (!formData.fullName || !formData.nidNumber || !formData.dateOfBirth || 
+        if (!formData.fullName || !formData.nidNumber || !formData.dateOfBirth ||
             !formData.fatherName || !formData.motherName || !formData.location || !formData.address) {
             toast({
                 title: "ত্রুটি",
@@ -753,18 +753,18 @@ const ExpertRegistration = ({ onBackToMainRegister }: ExpertRegistrationProps) =
                 </div>
 
                 <div className="space-y-2">
-                <Label className="text-base font-medium">সম্পূর্ণ ঠিকানা *</Label>
-                <LocationSelector
-                    value={formData.location}
-                    onChange={handleLocationChange}
-                    onAddressChange={handleAddressChange}
-                />
-                {formData.address && (
-                    <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-                        <p className="text-sm font-medium text-blue-800 mb-1">নির্বাচিত ঠিকানা:</p>
-                        <p className="text-sm text-blue-700 font-medium">{formData.address}</p>
-                    </div>
-                )}
+                    <Label className="text-base font-medium">সম্পূর্ণ ঠিকানা *</Label>
+                    <LocationSelector
+                        value={formData.location}
+                        onChange={handleLocationChange}
+                        onAddressChange={handleAddressChange}
+                    />
+                    {formData.address && (
+                        <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+                            <p className="text-sm font-medium text-blue-800 mb-1">নির্বাচিত ঠিকানা:</p>
+                            <p className="text-sm text-blue-700 font-medium">{formData.address}</p>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -1130,7 +1130,7 @@ const ExpertRegistration = ({ onBackToMainRegister }: ExpertRegistrationProps) =
                     <CheckCircle className="h-20 w-20 text-green-600" />
                 </div>
             </div>
-            
+
             <div className="space-y-3">
                 <h3 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
                     নিবন্ধন সফল!

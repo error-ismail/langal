@@ -80,14 +80,14 @@ const ExpertProfile = () => {
                 });
 
                 const data = await response.json();
-                
+
                 if (response.ok && data.success) {
                     const userData = data.data.user;
                     const expertData = userData.expert;
                     const userProfile = userData.profile;
 
                     let photoUrl = userProfile?.profile_photo_url_full || "";
-                    
+
                     // Fallback to localStorage if API returns empty
                     if (!photoUrl) {
                         try {
@@ -104,7 +104,7 @@ const ExpertProfile = () => {
                     }
 
                     const certUrl = expertData?.certification_document_url_full || "";
-                    
+
                     setProfileData(prev => ({
                         ...prev,
                         name: userProfile?.full_name || userData.name,
@@ -115,7 +115,7 @@ const ExpertProfile = () => {
                         experience: expertData?.experience_years ? `${expertData.experience_years} বছর` : "N/A",
                         specialization: expertData?.specialization ? expertData.specialization.split(',') : [],
                         workplace: expertData?.institution || "N/A",
-                        designation: "বিশেষজ্ঞ", 
+                        designation: "বিশেষজ্ঞ",
                         bio: expertData?.bio || "কোন তথ্য নেই",
                         profilePhoto: photoUrl,
                         certificationDocument: certUrl,
@@ -169,7 +169,7 @@ const ExpertProfile = () => {
         try {
             const token = localStorage.getItem('auth_token');
             const formData = new FormData();
-            
+
             // Append fields
             formData.append('name', profileData.name);
             formData.append('email', profileData.email);
@@ -180,12 +180,12 @@ const ExpertProfile = () => {
             formData.append('experience_years', profileData.experience.replace(/[^0-9]/g, ''));
             formData.append('institution', profileData.workplace);
             formData.append('bio', profileData.bio);
-            
+
             // Append file if selected
             if (selectedFile) {
                 formData.append('profilePhoto', selectedFile);
             }
-            
+
             // Use _method PUT for Laravel if using POST (Laravel sometimes has issues with PUT and FormData)
             formData.append('_method', 'PUT');
 
@@ -196,35 +196,35 @@ const ExpertProfile = () => {
                 },
                 body: formData
             });
-            
+
             const data = await response.json();
-            
+
             if (response.ok && data.success) {
                 toast({
                     title: "সফল",
                     description: "প্রোফাইল আপডেট করা হয়েছে",
                 });
                 setIsEditing(false);
-                
+
                 // Update localStorage user data if photo changed or other fields
                 if (data.data?.user) {
-                     const updatedUser = data.data.user;
-                     const storedUser = localStorage.getItem('user');
-                     if (storedUser) {
-                         const parsedUser = JSON.parse(storedUser);
-                         
-                         // Update fields
-                         if (updatedUser.profile?.profile_photo_url_full) {
-                             parsedUser.profilePhoto = updatedUser.profile.profile_photo_url_full;
-                         }
-                         parsedUser.name = updatedUser.profile?.full_name || updatedUser.name;
-                         parsedUser.email = updatedUser.email;
-                         parsedUser.phone = updatedUser.phone;
-                         parsedUser.location = updatedUser.profile?.address;
-                         
-                         // Update context and localStorage
-                         setAuthUser(parsedUser, token || "");
-                     }
+                    const updatedUser = data.data.user;
+                    const storedUser = localStorage.getItem('user');
+                    if (storedUser) {
+                        const parsedUser = JSON.parse(storedUser);
+
+                        // Update fields
+                        if (updatedUser.profile?.profile_photo_url_full) {
+                            parsedUser.profilePhoto = updatedUser.profile.profile_photo_url_full;
+                        }
+                        parsedUser.name = updatedUser.profile?.full_name || updatedUser.name;
+                        parsedUser.email = updatedUser.email;
+                        parsedUser.phone = updatedUser.phone;
+                        parsedUser.location = updatedUser.profile?.address;
+
+                        // Update context and localStorage
+                        setAuthUser(parsedUser, token || "");
+                    }
                 }
             } else {
                 throw new Error(data.message || "Failed to update");
@@ -283,7 +283,7 @@ const ExpertProfile = () => {
                                 {/* Direct image instead of Avatar component */}
                                 <div className="h-20 w-20 rounded-full overflow-hidden bg-green-700 flex items-center justify-center relative group">
                                     {profileData.profilePhoto && !imageError ? (
-                                        <img 
+                                        <img
                                             src={getImageUrl(profileData.profilePhoto)}
                                             alt={profileData.name}
                                             className="h-full w-full object-cover"
@@ -298,18 +298,18 @@ const ExpertProfile = () => {
                                             {profileData.name.split(' ').map(n => n[0]).join('')}
                                         </span>
                                     )}
-                                    
+
                                     {/* Image Upload Overlay */}
                                     {isEditing && (
-                                        <label 
-                                            htmlFor="profile-photo-upload" 
+                                        <label
+                                            htmlFor="profile-photo-upload"
                                             className="absolute inset-0 bg-black/50 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
                                             <Edit className="h-6 w-6 text-white" />
-                                            <input 
-                                                type="file" 
-                                                id="profile-photo-upload" 
-                                                className="hidden" 
+                                            <input
+                                                type="file"
+                                                id="profile-photo-upload"
+                                                className="hidden"
                                                 accept="image/*"
                                                 onChange={handleFileChange}
                                             />
@@ -450,9 +450,9 @@ const ExpertProfile = () => {
                                 {profileData.certificationDocument ? (
                                     <div className="border rounded-lg p-4 bg-muted/20">
                                         {profileData.certificationDocument.endsWith('.pdf') ? (
-                                            <a 
-                                                href={getImageUrl(profileData.certificationDocument)} 
-                                                target="_blank" 
+                                            <a
+                                                href={getImageUrl(profileData.certificationDocument)}
+                                                target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="flex items-center gap-2 text-blue-600 hover:underline"
                                             >
@@ -460,9 +460,9 @@ const ExpertProfile = () => {
                                                 সার্টিফিকেট দেখুন (PDF)
                                             </a>
                                         ) : (
-                                            <img 
-                                                src={getImageUrl(profileData.certificationDocument)} 
-                                                alt="Certification" 
+                                            <img
+                                                src={getImageUrl(profileData.certificationDocument)}
+                                                alt="Certification"
                                                 className="max-h-60 rounded-md object-contain w-full"
                                                 onError={(e) => {
                                                     console.error('Certificate image failed to load:', getImageUrl(profileData.certificationDocument));

@@ -42,7 +42,7 @@ export const CreatePost = ({ onPost, onCancel }: CreatePostProps) => {
 
     // Get user_id from either user_id or id field
     const userId = user?.user_id || (user?.id ? parseInt(user.id) : null);
-    
+
     if (!userId) {
       console.error('User ID not found');
       return;
@@ -53,7 +53,7 @@ export const CreatePost = ({ onPost, onCancel }: CreatePostProps) => {
     try {
       // Upload images to server first
       let uploadedImageUrls: string[] = [];
-      
+
       if (images.length > 0) {
         const formData = new FormData();
         images.forEach((img) => {
