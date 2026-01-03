@@ -35,9 +35,10 @@ import {
     toBengaliNumber,
     CompleteWeatherData
 } from "@/services/weatherService";
+import { API_URL } from "@/services/api";
 
 // API Base URL for images
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = API_URL.replace(/\/api\/?$/, '');
 
 // Import dashboard icons
 import socialFeedIcon from "@/assets/dashboard-icons/social-feed.png";

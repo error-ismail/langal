@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { API_URL } from '@/services/api';
 import { 
     Heart, 
     MessageCircle, 
@@ -117,7 +118,7 @@ export const EnhancedPostCard = ({
                         formData.append('images[]', img);
                     });
                     
-                    const response = await fetch('http://localhost:8000/api/social/upload-images', {
+                    const response = await fetch(`${API_URL}/social/upload-images`, {
                         method: 'POST',
                         body: formData,
                     });

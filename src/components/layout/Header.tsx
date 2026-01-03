@@ -15,10 +15,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAssetPath } from "@/lib/utils";
+import { API_URL } from '@/services/api';
 
 // API Base URL for images (derive from VITE_API_BASE, strip trailing /api)
-const RAW_API = (import.meta as unknown as { env?: Record<string, string | undefined> })?.env?.VITE_API_BASE || 'http://127.0.0.1:8000/api';
-const API_BASE_URL = RAW_API.replace(/\/?api\/?$/, '');
+const API_BASE_URL = API_URL.replace(/\/api\/?$/, '');
 
 // Profile photo URL helper
 const getProfilePhotoUrl = (photoPath: string | undefined): string | undefined => {

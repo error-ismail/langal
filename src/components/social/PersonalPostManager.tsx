@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { API_URL } from '@/services/api';
 import { 
     Edit2, 
     Trash2, 
@@ -126,7 +127,7 @@ export const PersonalPostManager = ({ onClose }: PersonalPostManagerProps) => {
                         formData.append('images[]', img);
                     });
                     
-                    const response = await fetch('http://localhost:8000/api/social/upload-images', {
+                    const response = await fetch(`${API_URL}/social/upload-images`, {
                         method: 'POST',
                         body: formData,
                     });

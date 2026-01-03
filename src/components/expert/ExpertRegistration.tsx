@@ -49,9 +49,11 @@ interface ExpertFormData {
     certificationPhoto: File | null;
 }
 
+import { API_URL } from '@/services/api';
+
 type RegistrationStep = 'phone' | 'otp' | 'personal' | 'professional' | 'documents' | 'success';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000/api';
+const API_BASE = API_URL;
 
 interface ExpertRegistrationProps {
     onBackToMainRegister: () => void;

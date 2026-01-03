@@ -37,6 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 import { MarketplaceListing, LISTING_CATEGORIES } from "@/types/marketplace";
 import { useAuth } from "@/contexts/AuthContext";
+import { API_URL } from '@/services/api';
 import { useToast } from "@/hooks/use-toast";
 import { marketplaceService } from "@/services/marketplaceService";
 import { englishToBangla } from "@/lib/banglaUtils";
@@ -61,7 +62,7 @@ interface ListingManagerProps {
 }
 
 // API Base URL
-const API_BASE = (import.meta as unknown as { env?: Record<string, string | undefined> })?.env?.VITE_API_BASE?.replace(/\/$/, '') || 'http://localhost:8000/api';
+const API_BASE = API_URL;
 
 interface Category {
     id: number;

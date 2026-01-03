@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { X, Plus, Upload, MapPin, Tag, DollarSign } from "lucide-react";
 import { LISTING_CATEGORIES, LISTING_TYPES } from "@/types/marketplace";
 import { useAuth } from "@/contexts/AuthContext";
+import { API_URL } from '@/services/api';
 import LocationSelector from "@/components/farmer/LocationSelector";
 
 interface CreateListingProps {
@@ -44,7 +45,7 @@ export const CreateListing = ({ onListing, onCancel }: CreateListingProps) => {
     useEffect(() => {
         const loadUserProfile = async () => {
             try {
-                const API_BASE = import.meta.env?.VITE_API_BASE?.replace(/\/$/, '') || 'http://localhost:8000/api';
+                const API_BASE = API_URL;
                 const token = localStorage.getItem('auth_token');
                 const response = await fetch(`${API_BASE}/farmer/profile`, {
                     headers: {
@@ -140,7 +141,7 @@ export const CreateListing = ({ onListing, onCancel }: CreateListingProps) => {
                     formData.append('images[]', image);
                 });
 
-                const API_BASE = import.meta.env?.VITE_API_BASE?.replace(/\/$/, '') || 'http://localhost:8000/api';
+                const API_BASE = API_URL;
                 const token = localStorage.getItem('auth_token');
                 const response = await fetch(`${API_BASE}/images/marketplace`, {
                     method: 'POST',

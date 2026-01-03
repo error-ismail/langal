@@ -9,13 +9,14 @@ import { Loader2, Phone, ArrowLeft, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getAssetPath } from "@/lib/utils";
 import ExpertForgotPassword from "./ExpertForgotPassword";
+import { API_URL } from '@/services/api';
 
 interface ExpertLoginProps {
     onBackToMainLogin: () => void;
 }
 
 // API Base URL
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000/api';
+const API_BASE = API_URL;
 
 const ExpertLogin = ({ onBackToMainLogin }: ExpertLoginProps) => {
     const [phone, setPhone] = useState("");
