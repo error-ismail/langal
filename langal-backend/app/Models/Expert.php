@@ -47,7 +47,10 @@ class Expert extends Model
     public function getCertificationDocumentUrlFullAttribute(): ?string
     {
         if ($this->certification_document) {
-            return asset('storage/' . $this->certification_document);
+            if (filter_var($this->certification_document, FILTER_VALIDATE_URL)) {
+                return $this->certification_document;
+            }
+            return \Illuminate\Support\Facades\Storage::url($this->certification_document);
         }
         return null;
     }

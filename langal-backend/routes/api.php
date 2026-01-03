@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ExpertAuthController;
 use App\Http\Controllers\Api\DataOperatorAuthController;
 use App\Http\Controllers\Api\MarketplaceController;
 use App\Http\Controllers\Api\ImageUploadController;
+use App\Http\Controllers\Api\DocumentUploadController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\CropRecommendationController;
 use App\Http\Controllers\PostController;
@@ -201,6 +202,11 @@ Route::prefix('images')->group(function () {
     Route::post('/marketplace', [ImageUploadController::class, 'uploadMarketplaceImages']);
     Route::delete('/marketplace', [ImageUploadController::class, 'deleteMarketplaceImage']);
     Route::get('/marketplace/{listingId}', [ImageUploadController::class, 'getListingImages']);
+});
+
+// Document Upload Routes
+Route::prefix('documents')->group(function () {
+    Route::post('/upload', [DocumentUploadController::class, 'upload']);
 });
 
 // Location Routes (Public - no authentication required)

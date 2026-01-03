@@ -55,6 +55,25 @@ class MarketplaceListing extends Model
         'expires_at' => 'datetime',
     ];
 
+    protected $appends = ['images_full_url'];
+
+    /**
+     * Get full URLs for images
+     */
+    public function getImagesFullUrlAttribute(): array
+    {
+        if (empty($this->images)) {
+            return [];
+        }
+
+        return array_map(function ($image) {
+            if (filter_var($image, FILTER_VALIDATE_URL)) {
+                return $image;
+            }
+            return \Illuminate\Support\Facades\Storage::url($image);
+        }, $this->images);
+    }
+
     // Relationships
     public function category(): BelongsTo
     {

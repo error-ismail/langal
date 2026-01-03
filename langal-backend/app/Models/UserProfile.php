@@ -50,7 +50,10 @@ class UserProfile extends Model
     public function getProfilePhotoUrlFullAttribute(): ?string
     {
         if ($this->profile_photo_url) {
-            return asset('storage/' . $this->profile_photo_url);
+            if (filter_var($this->profile_photo_url, FILTER_VALIDATE_URL)) {
+                return $this->profile_photo_url;
+            }
+            return \Illuminate\Support\Facades\Storage::url($this->profile_photo_url);
         }
         return null;
     }
@@ -61,7 +64,10 @@ class UserProfile extends Model
     public function getNidPhotoUrlFullAttribute(): ?string
     {
         if ($this->nid_photo_url) {
-            return asset('storage/' . $this->nid_photo_url);
+            if (filter_var($this->nid_photo_url, FILTER_VALIDATE_URL)) {
+                return $this->nid_photo_url;
+            }
+            return \Illuminate\Support\Facades\Storage::url($this->nid_photo_url);
         }
         return null;
     }
