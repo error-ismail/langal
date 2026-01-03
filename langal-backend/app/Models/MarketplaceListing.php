@@ -104,13 +104,6 @@ class MarketplaceListing extends Model
 
             return $url;
         }, $this->images);
-    }                        $container,
-                        ltrim($image, '/')
-                    );
-                }
-                return null;
-            }
-        }, $this->images);
     }
 
     // Relationships
