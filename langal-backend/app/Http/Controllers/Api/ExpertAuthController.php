@@ -160,36 +160,44 @@ class ExpertAuthController extends Controller
      */
     public function verifyOtp(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'phone' => 'required|string|min:11|max:15',
-            'otp_code' => 'required|string|size:6',
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'phone' => 'required|string|min:11|max:15',
+                'otp_code' => 'required|string|size:6',
+            ]);
 
-        if ($validator->fails()) {
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $phone = $request->phone;
+            $otpCode = $request->otp_code;
+
+            // Verify OTP
+            $result = $this->otpService->verifyOtp($phone, $otpCode, 'register');
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'],
+                ], 400);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'OTP verified successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Expert Verify OTP Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
+                'message' => 'Server Error: ' . $e->getMessage(),
+            ], 500);
         }
-
-        $phone = $request->phone;
-        $otpCode = $request->otp_code;
-
-        // Verify OTP
-        $result = $this->otpService->verifyOtp($phone, $otpCode, 'register');
-
-        if (!$result['success']) {
-            return response()->json([
-                'success' => false,
-                'message' => $result['message'],
-            ], 400);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'OTP verified successfully',
-        ], 200);
     }
 
     /**
