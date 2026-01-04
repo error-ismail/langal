@@ -336,10 +336,21 @@ const FarmerLogin = ({ onBackToMainLogin }: FarmerLoginProps) => {
                 <CheckCircle className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-blue-800">
                     আপনার {phone} নম্বরে একটি ৬ ডিজিটের OTP কোড পাঠানো হয়েছে
-                    <br />
-                    <span className="text-orange-600 font-medium">প্রোটোটাইপ মোড: যেকোনো ৬ ডিজিট দিলেই হবে</span>
                 </AlertDescription>
             </Alert>
+
+            {/* OTP Display for Demo/Testing - Shows OTP on screen */}
+            {generatedOtp && (
+                <Alert className="border-orange-300 bg-orange-50">
+                    <AlertDescription className="text-orange-800 text-center">
+                        <span className="font-medium">🔐 ডেমো OTP কোড:</span>
+                        <br />
+                        <span className="text-2xl font-bold tracking-widest text-orange-600">{generatedOtp}</span>
+                        <br />
+                        <span className="text-xs text-gray-500">(মোবাইল টেস্টিং এর জন্য)</span>
+                    </AlertDescription>
+                </Alert>
+            )}
 
             <form onSubmit={handleOtpSubmit} className="space-y-4">
                 <div className="space-y-2">
