@@ -72,9 +72,20 @@ class MarketplaceListing extends Model
             // If it's not a URL, generate one using Storage facade
             if (!filter_var($url, FILTER_VALIDATE_URL)) {
                 try {
-                    $url = \Illuminate\Support\Facades\Storage::url($url);
+                    $url = \Illuminate\Support\Facades\Storage::disk('azure')->url($url);
                 } catch (\Exception $e) {
-                    // Ignore error, will fall through to manual construction
+                    // Fallback: construct Azure URL manually
+                    $accountName = config('filesystems.disks.azure.name');
+                    $container = config('filesystems.disks.azure.container');
+                    
+                    if ($accountName && $container) {
+                        return sprintf(
+                            'https://%s.blob.core.windows.net/%s/%s',
+                            $accountName,
+                            $container,
+                            $image
+                        );
+                    }
                 }
             }
 
