@@ -125,27 +125,43 @@ class CallController extends Controller
 
             // Check if there's already an active call
             $existingCall = ConsultationCall::where('appointment_id', $request->appointment_id)
-                ->whereIn('status', ['ringing', 'ongoing'])
+                ->whereIn('call_status', ['ringing', 'ongoing'])
                 ->first();
 
             if ($existingCall) {
+                 // Reuse the existing call session instead of blocking
+                 // This ensures users can rejoin if they disconnect or refresh
+                 $token = $this->agoraService->generateToken(
+                    $existingCall->agora_channel,
+                    $user->user_id,
+                    'publisher',
+                    3600
+                );
+
                 return response()->json([
-                    'success' => false,
-                    'message' => 'There is already an active call for this appointment',
-                ], 400);
+                    'success' => true,
+                    'message' => 'Rejoining active call',
+                    'message_bn' => 'চলমান কলে যুক্ত হচ্ছেন',
+                    'data' => [
+                        'call' => $existingCall,
+                        'token' => $token,
+                        'channel_name' => $existingCall->agora_channel,
+                        'app_id' => config('services.agora.app_id'),
+                    ],
+                ]);
             }
 
             // Create call record
             $call = ConsultationCall::create([
                 'appointment_id' => $request->appointment_id,
                 'caller_id' => $user->user_id,
-                'receiver_id' => $user->user_id === $appointment->farmer_id 
+                'callee_id' => $user->user_id === $appointment->farmer_id 
                     ? $appointment->expert_id 
                     : $appointment->farmer_id,
                 'call_type' => $request->call_type,
                 'agora_channel' => $appointment->agora_channel_name,
-                'status' => 'ringing',
-                'started_at' => now(),
+                'call_status' => 'ringing',
+                'initiated_at' => now(),
             ]);
 
             // Generate token for caller
@@ -157,7 +173,7 @@ class CallController extends Controller
             );
 
             // Notify receiver
-            $receiverId = $call->receiver_id;
+            $receiverId = $call->callee_id;
             $callerName = $user->profile->full_name ?? $user->phone;
             $callTypeLabel = $request->call_type === 'video' ? 'ভিডিও কল' : 'অডিও কল';
 
@@ -207,14 +223,14 @@ class CallController extends Controller
 
             $call = ConsultationCall::with('appointment')->findOrFail($id);
 
-            if ($call->receiver_id !== $user->user_id) {
+            if ($call->callee_id !== $user->user_id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You are not the receiver of this call',
                 ], 403);
             }
 
-            if ($call->status !== 'ringing') {
+            if ($call->call_status !== 'ringing') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Call is not ringing',
@@ -222,7 +238,7 @@ class CallController extends Controller
             }
 
             $call->update([
-                'status' => 'ongoing',
+                'call_status' => ConsultationCall::STATUS_ONGOING,
                 'answered_at' => now(),
             ]);
 
@@ -264,14 +280,14 @@ class CallController extends Controller
 
             $call = ConsultationCall::findOrFail($id);
 
-            if ($call->receiver_id !== $user->user_id) {
+            if ($call->callee_id !== $user->user_id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You are not the receiver of this call',
                 ], 403);
             }
 
-            if ($call->status !== 'ringing') {
+            if ($call->call_status !== 'ringing') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Call is not ringing',
@@ -279,7 +295,7 @@ class CallController extends Controller
             }
 
             $call->update([
-                'status' => 'rejected',
+                'call_status' => 'rejected',
                 'ended_at' => now(),
             ]);
 
@@ -320,14 +336,14 @@ class CallController extends Controller
             $call = ConsultationCall::findOrFail($id);
 
             // Check if user is part of the call
-            if ($call->caller_id !== $user->user_id && $call->receiver_id !== $user->user_id) {
+            if ($call->caller_id !== $user->user_id && $call->callee_id !== $user->user_id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You are not part of this call',
                 ], 403);
             }
 
-            if (in_array($call->status, ['completed', 'failed', 'rejected'])) {
+            if (in_array($call->call_status, [ConsultationCall::STATUS_COMPLETED, 'failed', 'rejected'])) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Call is already ended',
@@ -342,14 +358,14 @@ class CallController extends Controller
             }
 
             $call->update([
-                'status' => 'completed',
+                'call_status' => ConsultationCall::STATUS_COMPLETED,
                 'ended_at' => $endedAt,
                 'duration_seconds' => $duration,
             ]);
 
             // Notify other party
             $otherUserId = $call->caller_id === $user->user_id 
-                ? $call->receiver_id 
+                ? $call->callee_id 
                 : $call->caller_id;
 
             $this->notificationService->sendToUser(
@@ -390,11 +406,11 @@ class CallController extends Controller
         try {
             $user = Auth::user();
 
-            $call = ConsultationCall::with(['caller.profile', 'receiver.profile'])
+            $call = ConsultationCall::with(['caller.profile', 'callee.profile'])
                 ->findOrFail($id);
 
             // Check if user is part of the call
-            if ($call->caller_id !== $user->user_id && $call->receiver_id !== $user->user_id) {
+            if ($call->caller_id !== $user->user_id && $call->callee_id !== $user->user_id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'You are not part of this call',

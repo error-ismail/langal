@@ -18,16 +18,19 @@ class ExpertAvailability extends Model
         'start_time',
         'end_time',
         'slot_duration_minutes',
-        'max_appointments_per_slot',
-        'is_active',
+        'max_appointments',
+        'is_available',
+        'consultation_types',
+        'notes'
     ];
 
     protected function casts(): array
     {
         return [
             'slot_duration_minutes' => 'integer',
-            'max_appointments_per_slot' => 'integer',
-            'is_active' => 'boolean',
+            'max_appointments' => 'integer',
+            'is_available' => 'boolean',
+            'consultation_types' => 'array',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];

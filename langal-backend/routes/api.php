@@ -127,6 +127,7 @@ Route::prefix('expert')->group(function () {
         Route::put('/profile', [ExpertAuthController::class, 'updateProfile']);
         Route::get('/profile', [ExpertAuthController::class, 'getProfile']);
         Route::post('/logout', [ExpertAuthController::class, 'logout']);
+        Route::post('/heartbeat', [ExpertAuthController::class, 'heartbeat']);
     });
 });
 
@@ -297,21 +298,26 @@ Route::prefix('experts/{expertId}')->group(function () {
 
 // Expert Availability Management (Protected - expert only)
 Route::middleware('auth:sanctum')->prefix('expert')->group(function () {
+    Route::get('/my-availability', [ExpertAvailabilityController::class, 'getMyAvailability']);
+    Route::post('/set-availability', [ExpertAvailabilityController::class, 'setAvailability']);
     Route::post('/availability', [ExpertAvailabilityController::class, 'store']);
     Route::delete('/availability/{id}', [ExpertAvailabilityController::class, 'destroy']);
     Route::post('/unavailable-dates', [ExpertAvailabilityController::class, 'addUnavailableDate']);
     Route::delete('/unavailable-dates/{id}', [ExpertAvailabilityController::class, 'removeUnavailableDate']);
+    Route::get('/stats', [AppointmentController::class, 'getExpertStats']);
 });
 
 // Appointment Routes (Protected)
 Route::middleware('auth:sanctum')->prefix('appointments')->group(function () {
+    Route::get('/my', [AppointmentController::class, 'myAppointments']);
+    Route::get('/today-count', [AppointmentController::class, 'todayCount']);
     Route::get('/', [AppointmentController::class, 'index']);
     Route::post('/', [AppointmentController::class, 'store']);
-    Route::get('/today-count', [AppointmentController::class, 'todayCount']);
-    Route::get('/{id}', [AppointmentController::class, 'show']);
+    Route::get('/{id}', [AppointmentController::class, 'show'])->whereNumber('id');
     
     // Appointment actions
     Route::put('/{id}/approve', [AppointmentController::class, 'approve']);
+    Route::put('/{id}/confirm', [AppointmentController::class, 'approve']); // alias for frontend
     Route::put('/{id}/reject', [AppointmentController::class, 'reject']);
     Route::put('/{id}/reschedule', [AppointmentController::class, 'reschedule']);
     Route::put('/{id}/cancel', [AppointmentController::class, 'cancel']);

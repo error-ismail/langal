@@ -19,8 +19,8 @@ class ConsultationCall extends Model
     // Call status constants
     const STATUS_INITIATED = 'initiated';
     const STATUS_RINGING = 'ringing';
-    const STATUS_ONGOING = 'ongoing';
-    const STATUS_COMPLETED = 'completed';
+    const STATUS_ONGOING = 'answered';
+    const STATUS_COMPLETED = 'ended';
     const STATUS_MISSED = 'missed';
     const STATUS_REJECTED = 'rejected';
     const STATUS_FAILED = 'failed';
@@ -28,12 +28,12 @@ class ConsultationCall extends Model
     protected $fillable = [
         'appointment_id',
         'caller_id',
-        'receiver_id',
+        'callee_id',
         'call_type',
-        'status',
+        'call_status',
         'agora_channel',
         'agora_token',
-        'started_at',
+        'initiated_at',
         'answered_at',
         'ended_at',
         'duration_seconds',
@@ -45,28 +45,17 @@ class ConsultationCall extends Model
     protected function casts(): array
     {
         return [
-            'started_at' => 'datetime',
+            'initiated_at' => 'datetime',
             'answered_at' => 'datetime',
             'ended_at' => 'datetime',
             'duration_seconds' => 'integer',
             'quality_score' => 'integer',
             'created_at' => 'datetime',
+            'updated_at' => 'datetime',
         ];
     }
 
-    public $timestamps = false;
-
-    /**
-     * Boot method
-     */
-    protected static function boot()
-    {
-        parent::boot();
-        
-        static::creating(function ($model) {
-            $model->created_at = now();
-        });
-    }
+    public $timestamps = true;
 
     protected $appends = ['duration_formatted', 'duration_formatted_bn', 'status_bn', 'type_bn'];
 
@@ -98,7 +87,6 @@ class ConsultationCall extends Model
         
         $minutes = floor($this->duration_seconds / 60);
         $seconds = $this->duration_seconds % 60;
-        
         $banglaNumbers = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
         
         $result = '';
@@ -142,7 +130,7 @@ class ConsultationCall extends Model
             'rejected' => 'প্রত্যাখ্যাত',
             'failed' => 'ব্যর্থ',
         ];
-        return $statuses[$this->status] ?? $this->status;
+        return $statuses[$this->call_status] ?? $this->call_status;
     }
 
     /**
@@ -174,11 +162,19 @@ class ConsultationCall extends Model
     }
 
     /**
-     * Relationship with Receiver
+     * Relationship with Receiver (Callee)
+     */
+    public function callee()
+    {
+        return $this->belongsTo(User::class, 'callee_id', 'user_id');
+    }
+
+    /**
+     * Relationship with Receiver (Alias for callee)
      */
     public function receiver()
     {
-        return $this->belongsTo(User::class, 'receiver_id', 'user_id');
+        return $this->callee();
     }
 
     /**
@@ -187,8 +183,8 @@ class ConsultationCall extends Model
     public function start(): void
     {
         $this->update([
-            'status' => self::STATUS_RINGING,
-            'started_at' => now(),
+            'call_status' => self::STATUS_RINGING,
+            'initiated_at' => now(),
         ]);
     }
 
@@ -198,7 +194,7 @@ class ConsultationCall extends Model
     public function answer(): void
     {
         $this->update([
-            'status' => self::STATUS_ONGOING,
+            'call_status' => self::STATUS_ONGOING,
             'answered_at' => now(),
         ]);
     }
@@ -214,7 +210,7 @@ class ConsultationCall extends Model
         }
 
         $this->update([
-            'status' => self::STATUS_COMPLETED,
+            'call_status' => self::STATUS_COMPLETED,
             'ended_at' => now(),
             'duration_seconds' => $duration,
             'end_reason' => $reason,
@@ -227,7 +223,7 @@ class ConsultationCall extends Model
     public function markAsMissed(): void
     {
         $this->update([
-            'status' => self::STATUS_MISSED,
+            'call_status' => self::STATUS_MISSED,
             'ended_at' => now(),
             'end_reason' => 'no_answer',
         ]);
@@ -239,7 +235,7 @@ class ConsultationCall extends Model
     public function reject(): void
     {
         $this->update([
-            'status' => self::STATUS_REJECTED,
+            'call_status' => self::STATUS_REJECTED,
             'ended_at' => now(),
             'end_reason' => 'rejected',
         ]);

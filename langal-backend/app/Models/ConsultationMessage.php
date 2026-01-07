@@ -41,24 +41,11 @@ class ConsultationMessage extends Model
             'read_at' => 'datetime',
             'is_edited' => 'boolean',
             'edited_at' => 'datetime',
-            'sent_at' => 'datetime',
             'deleted_at' => 'datetime',
         ];
     }
 
-    public $timestamps = false;
-
-    /**
-     * Boot method
-     */
-    protected static function boot()
-    {
-        parent::boot();
-        
-        static::creating(function ($model) {
-            $model->sent_at = now();
-        });
-    }
+    public $timestamps = true;
 
     protected $appends = ['media_url_full', 'time_ago', 'time_ago_bn'];
 
@@ -93,12 +80,20 @@ class ConsultationMessage extends Model
     }
 
     /**
+     * Get sent_at attribute (alias for created_at)
+     */
+    public function getSentAtAttribute()
+    {
+        return $this->created_at;
+    }
+
+    /**
      * Get time ago in English
      */
     public function getTimeAgoAttribute(): string
     {
-        if (!$this->sent_at) return '';
-        return $this->sent_at->diffForHumans();
+        if (!$this->created_at) return '';
+        return $this->created_at->diffForHumans();
     }
 
     /**
@@ -106,9 +101,9 @@ class ConsultationMessage extends Model
      */
     public function getTimeAgoBnAttribute(): string
     {
-        if (!$this->sent_at) return '';
+        if (!$this->created_at) return '';
         
-        $diff = now()->diff($this->sent_at);
+        $diff = now()->diff($this->created_at);
         
         if ($diff->y > 0) return $diff->y . ' বছর আগে';
         if ($diff->m > 0) return $diff->m . ' মাস আগে';

@@ -16,13 +16,18 @@ class ConsultationFeedback extends Model
         'appointment_id',
         'farmer_id',
         'expert_id',
-        'rating',
+        'overall_rating',
         'communication_rating',
         'knowledge_rating',
         'helpfulness_rating',
         'review_text',
         'review_text_bn',
         'is_anonymous',
+        'would_recommend',
+        'tags',
+        'is_reported',
+        'report_reason',
+        'reported_at',
         'expert_response',
         'expert_response_bn',
         'responded_at',
@@ -32,11 +37,14 @@ class ConsultationFeedback extends Model
     protected function casts(): array
     {
         return [
-            'rating' => 'integer',
+            'overall_rating' => 'integer',
             'communication_rating' => 'integer',
             'knowledge_rating' => 'integer',
             'helpfulness_rating' => 'integer',
             'is_anonymous' => 'boolean',
+            'would_recommend' => 'boolean',
+            'tags' => 'array',
+            'is_reported' => 'boolean',
             'responded_at' => 'datetime',
             'is_featured' => 'boolean',
             'created_at' => 'datetime',
@@ -58,7 +66,7 @@ class ConsultationFeedback extends Model
             4 => 'Very Good',
             5 => 'Excellent',
         ];
-        return $texts[$this->rating] ?? '';
+        return $texts[$this->overall_rating] ?? '';
     }
 
     /**
@@ -73,7 +81,7 @@ class ConsultationFeedback extends Model
             4 => 'অনেক ভালো',
             5 => 'চমৎকার',
         ];
-        return $texts[$this->rating] ?? '';
+        return $texts[$this->overall_rating] ?? '';
     }
 
     /**
@@ -128,7 +136,7 @@ class ConsultationFeedback extends Model
      */
     public function scopeHighRating($query)
     {
-        return $query->where('rating', '>=', 4);
+        return $query->where('overall_rating', '>=', 4);
     }
 
     /**

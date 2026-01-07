@@ -142,6 +142,12 @@ class AppointmentController extends Controller
             // Generate Agora channel name
             $agoraChannel = 'consultation_' . Str::uuid();
 
+            \Log::info('Creating appointment', [
+                'user_id' => $user->user_id,
+                'expert_id' => $request->expert_id,
+                'date' => $request->appointment_date,
+            ]);
+
             $appointment = ConsultationAppointment::create([
                 'farmer_id' => $user->user_id,
                 'expert_id' => $request->expert_id,
@@ -158,19 +164,32 @@ class AppointmentController extends Controller
                 'agora_channel_name' => $agoraChannel,
             ]);
 
+            \Log::info('Appointment created', ['id' => $appointment->appointment_id]);
+
             // Load relationships
-            $appointment->load(['farmer.profile', 'expert.profile', 'expertQualification']);
+            try {
+                $appointment->load(['farmer.profile', 'expert.profile', 'expertQualification']);
+            } catch (\Exception $e) {
+                \Log::warning('Failed to load relationships: ' . $e->getMessage());
+            }
 
             // Send notification to expert
-            $this->notificationService->sendToUser(
-                $request->expert_id,
-                'নতুন পরামর্শ অনুরোধ',
-                'একজন কৃষক আপনার সাথে পরামর্শের জন্য অনুরোধ করেছেন',
-                [
-                    'type' => 'new_appointment',
-                    'appointment_id' => $appointment->appointment_id,
-                ]
-            );
+            try {
+                if ($this->notificationService) {
+                    $this->notificationService->sendToUser(
+                        $request->expert_id,
+                        'নতুন পরামর্শ অনুরোধ',
+                        'একজন কৃষক আপনার সাথে পরামর্শের জন্য অনুরোধ করেছেন',
+                        [
+                            'type' => 'new_appointment',
+                            'appointment_id' => $appointment->appointment_id,
+                            'sender_id' => $user->user_id,
+                        ]
+                    );
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to send notification: ' . $e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,
@@ -179,6 +198,9 @@ class AppointmentController extends Controller
                 'data' => $appointment,
             ], 201);
         } catch (\Exception $e) {
+            \Log::error('Appointment creation failed: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create appointment',
@@ -191,9 +213,10 @@ class AppointmentController extends Controller
      * Get appointment details
      * GET /api/appointments/{id}
      */
-    public function show(int $id): JsonResponse
+    public function show($id): JsonResponse
     {
         try {
+            $id = (int)$id;
             $user = Auth::user();
 
             $appointment = ConsultationAppointment::with([
@@ -201,7 +224,7 @@ class AppointmentController extends Controller
                 'expert.profile',
                 'expertQualification',
                 'messages' => function ($query) {
-                    $query->orderBy('sent_at', 'desc')->limit(5);
+                    $query->orderBy('created_at', 'desc')->limit(5);
                 },
                 'prescription',
                 'feedback',
@@ -263,6 +286,7 @@ class AppointmentController extends Controller
                 [
                     'type' => 'appointment_confirmed',
                     'appointment_id' => $appointment->appointment_id,
+                    'sender_id' => $user->user_id,
                 ]
             );
 
@@ -324,6 +348,7 @@ class AppointmentController extends Controller
                 [
                     'type' => 'appointment_rejected',
                     'appointment_id' => $appointment->appointment_id,
+                    'sender_id' => $user->user_id,
                 ]
             );
 
@@ -568,6 +593,158 @@ class AppointmentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get count',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get appointments for logged-in user (my appointments)
+     * GET /api/appointments/my
+     */
+    public function myAppointments(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $status = $request->query('status');
+            $perPage = $request->query('per_page', 20);
+
+            $query = ConsultationAppointment::with(['farmer.profile', 'expert.profile', 'expertQualification']);
+
+            // Filter by user type
+            if ($user->user_type === 'farmer') {
+                $query->where('farmer_id', $user->user_id);
+            } elseif ($user->user_type === 'expert') {
+                $query->where('expert_id', $user->user_id);
+            }
+
+            // Filter by status (can be comma-separated)
+            if ($status) {
+                $statuses = explode(',', $status);
+                $query->whereIn('status', $statuses);
+            }
+
+            $appointments = $query->orderBy('appointment_date', 'desc')
+                ->orderBy('start_time', 'desc')
+                ->get();
+
+            // Format appointments for frontend
+            $formatted = $appointments->map(function ($apt) {
+                // Calculate duration in minutes
+                $durationMinutes = 0;
+                if ($apt->start_time && $apt->end_time) {
+                    $start = \Carbon\Carbon::parse($apt->start_time);
+                    $end = \Carbon\Carbon::parse($apt->end_time);
+                    $durationMinutes = $start->diffInMinutes($end);
+                }
+
+                return [
+                    'appointment_id' => $apt->appointment_id,
+                    'farmer_id' => $apt->farmer_id,
+                    'expert_id' => $apt->expert_id,
+                    'scheduled_at' => $apt->appointment_date->format('Y-m-d') . 'T' . $apt->start_time,
+                    'appointment_date' => $apt->appointment_date,
+                    'start_time' => $apt->start_time,
+                    'end_time' => $apt->end_time,
+                    'duration_minutes' => $durationMinutes,
+                    'consultation_type' => $apt->consultation_type,
+                    'status' => $apt->status,
+                    'status_bn' => $apt->status_bn,
+                    'problem_description' => $apt->problem_description,
+                    'urgency_level' => $apt->urgency_level,
+                    'farmer' => $apt->farmer ? [
+                        'user_id' => $apt->farmer->user_id,
+                        'profile' => $apt->farmer->profile ? [
+                            'full_name' => $apt->farmer->profile->full_name,
+                            'profile_photo_url' => $apt->farmer->profile->profile_photo_url,
+                            'profile_photo_url_full' => $apt->farmer->profile->profile_photo_url_full,
+                        ] : null,
+                    ] : null,
+                    'expert' => $apt->expert ? [
+                        'user_id' => $apt->expert->user_id,
+                        'profile' => $apt->expert->profile ? [
+                            'full_name' => $apt->expert->profile->full_name,
+                            'profile_photo_url' => $apt->expert->profile->profile_photo_url,
+                            'profile_photo_url_full' => $apt->expert->profile->profile_photo_url_full,
+                        ] : null,
+                    ] : null,
+                    'expert_qualification' => $apt->expertQualification ? [
+                        'specialization' => $apt->expertQualification->specialization,
+                        'qualification' => $apt->expertQualification->qualification,
+                        'experience_years' => $apt->expertQualification->experience_years,
+                        'consultation_fee' => $apt->expertQualification->consultation_fee,
+                    ] : null,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $formatted,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch appointments',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get expert dashboard stats
+     * GET /api/expert/stats
+     */
+    public function getExpertStats(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            if ($user->user_type !== 'expert') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only experts can access this endpoint',
+                ], 403);
+            }
+
+            $expertId = $user->user_id;
+
+            // Total appointments
+            $totalAppointments = ConsultationAppointment::where('expert_id', $expertId)->count();
+
+            // Completed appointments
+            $completedAppointments = ConsultationAppointment::where('expert_id', $expertId)
+                ->where('status', 'completed')
+                ->count();
+
+            // Pending appointments
+            $pendingAppointments = ConsultationAppointment::where('expert_id', $expertId)
+                ->where('status', 'pending')
+                ->count();
+
+            // Average rating from feedback
+            $avgRating = DB::table('consultation_feedback')
+                ->where('expert_id', $expertId)
+                ->avg('overall_rating');
+
+            // Total reviews
+            $totalReviews = DB::table('consultation_feedback')
+                ->where('expert_id', $expertId)
+                ->count();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total_appointments' => $totalAppointments,
+                    'completed_appointments' => $completedAppointments,
+                    'pending_appointments' => $pendingAppointments,
+                    'average_rating' => $avgRating ? round($avgRating, 1) : 0,
+                    'total_reviews' => $totalReviews,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch stats',
                 'error' => $e->getMessage(),
             ], 500);
         }

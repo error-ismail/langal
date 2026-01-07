@@ -151,7 +151,7 @@ const ExpertDashboard = () => {
             title: "পরামর্শ",
             description: "কৃষকদের পরামর্শ দিন",
             image: consultationIcon,
-            route: "/consultation",
+            route: "/consultation/dashboard",
             color: "bg-indigo-500",
             stats: "২৪/৭ সেবা"
         },

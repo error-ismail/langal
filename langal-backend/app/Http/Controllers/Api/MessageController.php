@@ -50,7 +50,7 @@ class MessageController extends Controller
                 ->get()
                 ->map(function ($appointment) use ($user) {
                     $lastMessage = ConsultationMessage::where('appointment_id', $appointment->appointment_id)
-                        ->orderBy('sent_at', 'desc')
+                        ->orderBy('created_at', 'desc')
                         ->first();
 
                     return [
@@ -106,7 +106,7 @@ class MessageController extends Controller
 
             $query = ConsultationMessage::where('appointment_id', $appointmentId)
                 ->with('sender.profile')
-                ->orderBy('sent_at', 'desc');
+                ->orderBy('created_at', 'desc');
 
             if ($before) {
                 $query->where('message_id', '<', $before);

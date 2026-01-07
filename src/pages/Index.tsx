@@ -18,7 +18,7 @@ const Index = () => {
           navigate('/data-operator-dashboard');
           break;
         case 'expert':
-          navigate('/consultant-dashboard');
+          navigate('/expert-dashboard');
           break;
         case 'customer':
           navigate('/customer-dashboard');

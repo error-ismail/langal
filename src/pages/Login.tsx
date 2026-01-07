@@ -134,7 +134,7 @@ const Login = () => {
                             navigate('/');
                             break;
                         case 'expert':
-                            navigate('/consultant-dashboard');
+                            navigate('/expert-dashboard');
                             break;
                         default:
                             navigate('/');

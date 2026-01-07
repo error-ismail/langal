@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Search, LogOut, CheckCircle, XCircle, Clock, Check } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Bell, Search, LogOut, CheckCircle, XCircle, Clock, Check, ChevronRight } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useState } from "react";
@@ -18,6 +18,7 @@ import { getAssetPath, getProfilePhotoUrl } from "@/lib/utils";
 
 export const Header = () => {
   const { user, logout, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [visibleCount, setVisibleCount] = useState(5);
 
   // Get notifications for all authenticated users
@@ -114,14 +115,36 @@ export const Header = () => {
                           key={notification.id}
                           className={`flex flex-col items-start p-3 cursor-pointer ${!notification.read ? 'bg-blue-50 hover:bg-blue-100' : ''
                             }`}
-                          onClick={() => markAsRead && markAsRead(notification.id)}
+                          onClick={() => {
+                            // Mark as read
+                            markAsRead && markAsRead(notification.id);
+
+                            // Navigate based on notification type
+                            if (notification.type === 'consultation_request') {
+                              // Navigate to appointment details page if relatedEntityId exists
+                              if (notification.relatedEntityId) {
+                                navigate(`/consultation/appointment/${notification.relatedEntityId}`);
+                              } else if (user?.type === 'expert') {
+                                navigate('/consultation/dashboard');
+                              } else {
+                                navigate('/consultation/appointments');
+                              }
+                            }
+                          }}
                         >
-                          <div className="font-medium text-sm mb-1">{notification.title}</div>
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            {notification.message}
-                          </p>
-                          <div className="text-[10px] text-muted-foreground mt-1">
-                            {notification.time}
+                          <div className="flex items-center gap-2 w-full">
+                            <div className="flex-1">
+                              <div className="font-medium text-sm mb-1">{notification.title}</div>
+                              <p className="text-xs text-muted-foreground line-clamp-2">
+                                {notification.message}
+                              </p>
+                              <div className="text-[10px] text-muted-foreground mt-1">
+                                {notification.time}
+                              </div>
+                            </div>
+                            {notification.type === 'consultation_request' && (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            )}
                           </div>
                         </DropdownMenuItem>
                       ))

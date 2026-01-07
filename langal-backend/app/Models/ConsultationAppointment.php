@@ -56,7 +56,28 @@ class ConsultationAppointment extends Model
         ];
     }
 
-    protected $appends = ['status_bn', 'type_bn', 'urgency_level_bn'];
+    protected $appends = ['status_bn', 'type_bn', 'urgency_level_bn', 'scheduled_at', 'duration_minutes'];
+
+    /**
+     * Get scheduled_at attribute
+     */
+    public function getScheduledAtAttribute(): string
+    {
+        return $this->appointment_date->format('Y-m-d') . 'T' . $this->start_time;
+    }
+
+    /**
+     * Get duration_minutes attribute
+     */
+    public function getDurationMinutesAttribute(): int
+    {
+        if (!$this->end_time || !$this->start_time) {
+            return 0; // Default or handle appropriately
+        }
+        $start = \Carbon\Carbon::parse($this->start_time);
+        $end = \Carbon\Carbon::parse($this->end_time);
+        return $start->diffInMinutes($end);
+    }
 
     /**
      * Get status in Bangla
@@ -145,6 +166,14 @@ class ConsultationAppointment extends Model
     public function rescheduledFrom()
     {
         return $this->belongsTo(self::class, 'rescheduled_from', 'appointment_id');
+    }
+
+    /**
+     * Relationship with expert qualification
+     */
+    public function expertQualification()
+    {
+        return $this->hasOne(Expert::class, 'user_id', 'expert_id');
     }
 
     /**

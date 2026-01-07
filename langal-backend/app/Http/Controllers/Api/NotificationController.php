@@ -16,7 +16,7 @@ class NotificationController extends Controller
     {
         // Try to get user from request if Auth facade fails
         $user = $request->user();
-        $recipientId = $user ? $user->id : Auth::id();
+        $recipientId = $user ? $user->user_id : Auth::id();
         
         // Fallback for testing/debugging if still null (REMOVE IN PRODUCTION)
         if (!$recipientId && $request->header('X-User-Id')) {
@@ -42,7 +42,7 @@ class NotificationController extends Controller
     {
         // Try to get user from request if Auth facade fails
         $user = $request->user();
-        $userId = $user ? $user->id : Auth::id();
+        $userId = $user ? $user->user_id : Auth::id();
         
         // Fallback for testing/debugging if still null (REMOVE IN PRODUCTION)
         if (!$userId && $request->header('X-User-Id')) {
@@ -59,13 +59,20 @@ class NotificationController extends Controller
         $updated = DB::table('notifications')
             ->where('notification_id', $id)
             ->where('recipient_id', $userId)
-            ->update(['is_read' => true]);
+            ->update(['is_read' => 1, 'read_at' => now()]);
 
         if ($updated) {
             return response()->json(['success' => true, 'message' => 'Marked as read']);
         }
 
-        return response()->json(['success' => false, 'message' => 'Notification not found'], 404);
+        // Try without recipient check (maybe the notification exists but user mismatch)
+        $exists = DB::table('notifications')->where('notification_id', $id)->exists();
+        if (!$exists) {
+            return response()->json(['success' => false, 'message' => 'Notification not found'], 404);
+        }
+
+        // Notification exists but not for this user
+        return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
     }
 
     /**
@@ -75,7 +82,7 @@ class NotificationController extends Controller
     {
         // Try to get user from request if Auth facade fails
         $user = $request->user();
-        $userId = $user ? $user->id : Auth::id();
+        $userId = $user ? $user->user_id : Auth::id();
         
         // Fallback for testing/debugging if still null (REMOVE IN PRODUCTION)
         if (!$userId && $request->header('X-User-Id')) {
@@ -84,7 +91,7 @@ class NotificationController extends Controller
 
         DB::table('notifications')
             ->where('recipient_id', $userId)
-            ->update(['is_read' => true]);
+            ->update(['is_read' => 1, 'read_at' => now()]);
 
         return response()->json(['success' => true, 'message' => 'All marked as read']);
     }
@@ -96,7 +103,7 @@ class NotificationController extends Controller
     {
         // Try to get user from request if Auth facade fails
         $user = $request->user();
-        $userId = $user ? $user->id : Auth::id();
+        $userId = $user ? $user->user_id : Auth::id();
         
         // Fallback for testing/debugging if still null (REMOVE IN PRODUCTION)
         if (!$userId && $request->header('X-User-Id')) {

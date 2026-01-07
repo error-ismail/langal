@@ -36,23 +36,23 @@ class NotificationService
         string $priority = 'normal'
     ): bool {
         try {
-            // Get user's device tokens
+            // ALWAYS save notification to database first (for in-app notifications)
+            $this->saveNotificationToDatabase($userId, $title, $body, $data, $priority);
+
+            // Get user's device tokens for push notification
             $tokens = NotificationToken::where('user_id', $userId)
                 ->where('is_active', true)
                 ->pluck('device_token')
                 ->toArray();
 
             if (empty($tokens)) {
-                // Queue notification for when user registers a token
-                $this->queueNotification($userId, $title, $body, $data, $priority);
-                return false;
+                // No device tokens, but notification is saved to DB
+                Log::info('No device tokens for user, notification saved to DB only', ['user_id' => $userId]);
+                return true; // Return true since DB notification was saved
             }
 
-            // Send to FCM
+            // Send to FCM for push notification
             $result = $this->sendFcmNotification($tokens, $title, $body, $data, $priority);
-
-            // Log notification
-            $this->logNotification($userId, $title, $body, $data, $result);
 
             return $result;
         } catch (\Exception $e) {
@@ -225,6 +225,7 @@ class NotificationService
     ): void {
         NotificationQueue::create([
             'user_id' => $userId,
+            'notification_type' => $data['type'] ?? 'general',
             'title' => $title,
             'body' => $body,
             'data' => json_encode($data),
@@ -234,23 +235,69 @@ class NotificationService
     }
 
     /**
-     * Log notification
+     * Save notification directly to database
      */
-    private function logNotification(
+    private function saveNotificationToDatabase(
         int $userId,
         string $title,
         string $body,
         array $data,
-        bool $success
+        string $priority = 'normal'
     ): void {
-        // Store in notifications table for history
-        \App\Models\User::find($userId)?->notifications()->create([
-            'title' => $title,
-            'message' => $body,
-            'notification_type' => $data['type'] ?? 'general',
-            'data' => json_encode($data),
-            'is_read' => false,
-        ]);
+        try {
+            // Get notification type from data
+            $notificationType = $data['type'] ?? 'system';
+            
+            // Map notification types to valid notification_type values
+            $typeMapping = [
+                'new_appointment' => 'consultation_request',
+                'appointment_confirmed' => 'consultation_request',
+                'appointment_rejected' => 'consultation_request',
+                'appointment_cancelled' => 'consultation_request',
+                'appointment_reminder' => 'consultation_request',
+                'incoming_call' => 'consultation_request',
+            ];
+            
+            $dbNotificationType = $typeMapping[$notificationType] ?? 'system';
+            
+            // Map to valid notification_category enum values
+            $categoryMapping = [
+                'new_appointment' => 'appointment',
+                'appointment_confirmed' => 'appointment',
+                'appointment_rejected' => 'appointment',
+                'appointment_cancelled' => 'appointment',
+                'appointment_reminder' => 'reminder',
+                'incoming_call' => 'call',
+            ];
+            
+            $dbCategory = $categoryMapping[$notificationType] ?? 'system';
+            
+            // Insert directly into notifications table (notification_id is auto-increment)
+            \Illuminate\Support\Facades\DB::table('notifications')->insert([
+                'recipient_id' => $userId,
+                'sender_id' => $data['sender_id'] ?? null,
+                'notification_type' => $dbNotificationType,
+                'notification_category' => $dbCategory,
+                'priority' => $priority,
+                'title' => $title,
+                'message' => $body,
+                'related_entity_id' => isset($data['appointment_id']) ? (string)$data['appointment_id'] : ($data['related_entity_id'] ?? null),
+                'is_read' => 0,
+                'created_at' => now(),
+            ]);
+            
+            Log::info('Notification saved to database', [
+                'user_id' => $userId,
+                'type' => $dbNotificationType,
+                'category' => $dbCategory,
+                'title' => $title,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to save notification to database', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

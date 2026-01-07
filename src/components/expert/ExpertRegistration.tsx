@@ -436,7 +436,7 @@ const ExpertRegistration = ({ onBackToMainRegister }: ExpertRegistrationProps) =
 
                 // Redirect after 2 seconds
                 setTimeout(() => {
-                    navigate('/consultant-dashboard');
+                    navigate('/expert-dashboard');
                 }, 2000);
             } else {
                 console.error('Registration failed:', data);

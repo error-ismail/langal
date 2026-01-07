@@ -105,7 +105,7 @@ const ExpertLogin = ({ onBackToMainLogin }: ExpertLoginProps) => {
                 });
 
                 // Redirect to expert dashboard
-                navigate('/consultant-dashboard');
+                navigate('/expert-dashboard');
             } else {
                 const backendMsg = data?.message;
                 if (response.status === 404) {

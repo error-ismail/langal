@@ -163,9 +163,10 @@ class FeedbackController extends Controller
      * Get all reviews for an expert
      * GET /api/experts/{expertId}/reviews
      */
-    public function getExpertReviews(Request $request, int $expertId): JsonResponse
+    public function getExpertReviews(Request $request, $expertId): JsonResponse
     {
         try {
+            $expertId = (int) $expertId;
             $perPage = $request->query('per_page', 10);
             $rating = $request->query('rating'); // Filter by rating
 

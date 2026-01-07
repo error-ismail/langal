@@ -18,27 +18,42 @@ class ExpertAvailabilityController extends Controller
      * Get expert's availability schedule
      * GET /api/experts/{expertId}/availability
      */
-    public function index(int $expertId): JsonResponse
+    public function index($expertId): JsonResponse
     {
         try {
-            $availability = ExpertAvailability::where('expert_id', $expertId)
-                ->where('is_active', true)
-                ->orderBy('day_of_week')
-                ->orderBy('start_time')
+            $expertId = (int) $expertId;
+
+            // Resolve Expert Qualification ID to User ID
+            $expert = Expert::find($expertId);
+            $targetUserId = $expert ? $expert->user_id : $expertId;
+
+            $availability = ExpertAvailability::where('expert_id', $targetUserId)
+                ->where('is_available', true)
                 ->get();
 
-            $unavailableDates = ExpertUnavailableDate::where('expert_id', $expertId)
-                ->where('unavailable_date', '>=', now()->toDateString())
-                ->orderBy('unavailable_date')
-                ->get();
+            $daysMapping = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+            // Transform day_of_week string to integer for frontend
+            $formatted = $availability->map(function ($slot) use ($daysMapping) {
+                $dayInt = array_search(strtolower($slot->day_of_week), $daysMapping);
+                if ($dayInt === false) $dayInt = 0;
+
+                return [
+                    'availability_id' => $slot->availability_id,
+                    'day_of_week' => $dayInt,
+                    'start_time' => $slot->start_time,
+                    'end_time' => $slot->end_time,
+                    'slot_duration_minutes' => $slot->slot_duration_minutes,
+                    'max_appointments' => $slot->max_appointments,
+                    'is_available' => (bool)$slot->is_available,
+                ];
+            })->sortBy('day_of_week')->values();
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'availability' => $availability,
-                    'unavailable_dates' => $unavailableDates,
-                ],
+                'data' => $formatted,
             ]);
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -78,16 +93,20 @@ class ExpertAvailabilityController extends Controller
             // Delete existing availability
             ExpertAvailability::where('expert_id', $expertId)->delete();
 
+            $daysMapping = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
             $schedules = [];
             foreach ($request->schedules as $schedule) {
+                // Map integer day (0-6) to ENUM string
+                $dayName = $daysMapping[$schedule['day_of_week']] ?? 'sunday';
+                
                 $schedules[] = ExpertAvailability::create([
                     'expert_id' => $expertId,
-                    'day_of_week' => $schedule['day_of_week'],
+                    'day_of_week' => $dayName,
                     'start_time' => $schedule['start_time'],
                     'end_time' => $schedule['end_time'],
                     'slot_duration_minutes' => $schedule['slot_duration_minutes'] ?? 30,
-                    'max_appointments_per_slot' => $schedule['max_appointments_per_slot'] ?? 1,
-                    'is_active' => true,
+                    'max_appointments' => $schedule['max_appointments_per_slot'] ?? 1,
+                    'is_available' => true,
                 ]);
             }
 
@@ -227,10 +246,18 @@ class ExpertAvailabilityController extends Controller
      * Get available time slots for a specific date
      * GET /api/experts/{expertId}/slots?date=2026-01-10
      */
-    public function getAvailableSlots(Request $request, int $expertId): JsonResponse
+    public function getAvailableSlots(Request $request, $expertId): JsonResponse
     {
+        \Log::info('getAvailableSlots called', ['expertId' => $expertId, 'date' => $request->date]);
+        
+        $expertId = (int) $expertId;
+        
+        // Resolve Expert Qualification ID to User ID
+        $expert = Expert::find($expertId);
+        $targetUserId = $expert ? $expert->user_id : $expertId;
+        
         $validator = Validator::make($request->all(), [
-            'date' => 'required|date|after_or_equal:today',
+            'date' => 'required|date',
         ]);
 
         if ($validator->fails()) {
@@ -244,9 +271,11 @@ class ExpertAvailabilityController extends Controller
         try {
             $date = Carbon::parse($request->date);
             $dayOfWeek = $date->dayOfWeek;
+            $daysMapping = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            $dayName = $daysMapping[$dayOfWeek] ?? 'sunday';
 
             // Check if expert has marked this date as unavailable
-            $isUnavailable = ExpertUnavailableDate::where('expert_id', $expertId)
+            $isUnavailable = ExpertUnavailableDate::where('expert_id', $targetUserId)
                 ->where('unavailable_date', $date->toDateString())
                 ->exists();
 
@@ -263,11 +292,13 @@ class ExpertAvailabilityController extends Controller
                 ]);
             }
 
-            // Get availability for this day
-            $availability = ExpertAvailability::where('expert_id', $expertId)
-                ->where('day_of_week', $dayOfWeek)
-                ->where('is_active', true)
+            // Get availability for this day (day_of_week is stored as string like 'sunday')
+            \Log::info('Getting availability', ['targetUserId' => $targetUserId, 'dayName' => $dayName]);
+            $availability = ExpertAvailability::where('expert_id', $targetUserId)
+                ->where('day_of_week', $dayName)
+                ->where('is_available', true)
                 ->get();
+            \Log::info('Got availability', ['count' => count($availability)]);
 
             if ($availability->isEmpty()) {
                 return response()->json([
@@ -282,37 +313,55 @@ class ExpertAvailabilityController extends Controller
                 ]);
             }
 
-            // Generate time slots
+            // Fetch all appointments for the day once
+            try {
+                $appointments = \App\Models\ConsultationAppointment::where('expert_id', $targetUserId)
+                    ->where('appointment_date', $date->toDateString())
+                    ->whereIn('status', ['pending', 'confirmed', 'approved'])
+                    ->get();
+                \Log::info('Fetched appointments for checking availability', ['count' => $appointments->count()]);
+            } catch (\Exception $e) {
+                \Log::error('Error fetching appointments: ' . $e->getMessage());
+                // Fallback to empty collection if query fails, to at least show slots (risk of double booking but better than crash)
+                $appointments = collect([]); 
+            }
+
+            // Generate time slots using for loop to avoid infinite loop issues
+            \Log::info('Starting slot generation');
             $slots = [];
             foreach ($availability as $avail) {
-                $startTime = Carbon::parse($date->toDateString() . ' ' . $avail->start_time);
-                $endTime = Carbon::parse($date->toDateString() . ' ' . $avail->end_time);
-                $slotDuration = $avail->slot_duration_minutes;
+                $startTimestamp = strtotime($date->toDateString() . ' ' . $avail->start_time);
+                $endTimestamp = strtotime($date->toDateString() . ' ' . $avail->end_time);
+                $slotDuration = ($avail->slot_duration_minutes ?? 30) * 60; // in seconds
+                \Log::info('Processing availability', ['start' => $avail->start_time, 'end' => $avail->end_time, 'duration' => $slotDuration]);
 
-                while ($startTime->addMinutes($slotDuration)->lte($endTime)) {
-                    $slotStart = $startTime->copy()->subMinutes($slotDuration);
-                    $slotEnd = $startTime->copy();
-
-                    // Check if slot is already booked
-                    $bookedCount = \App\Models\ConsultationAppointment::where('expert_id', $expertId)
-                        ->where('appointment_date', $date->toDateString())
-                        ->where('start_time', $slotStart->format('H:i:s'))
-                        ->whereIn('status', ['pending', 'confirmed'])
-                        ->count();
-
-                    $isSlotAvailable = $bookedCount < $avail->max_appointments_per_slot;
+                $slotCount = 0;
+                for ($currentTime = $startTimestamp; $currentTime + $slotDuration <= $endTimestamp; $currentTime += $slotDuration) {
+                    $slotStartStr = date('H:i', $currentTime);
+                    $slotEndStr = date('H:i', $currentTime + $slotDuration);
+                    $slotCount++;
 
                     // Skip past slots for today
-                    if ($date->isToday() && $slotStart->lt(now())) {
+                    if ($date->isToday() && $currentTime < time()) {
                         continue;
                     }
 
+                    // Check if slot is already booked (OPTIMIZED: In-memory check)
+                    $targetTime = $slotStartStr . ':00';
+                    $bookedCount = $appointments->filter(function ($appt) use ($targetTime) {
+                        // Ensure we compare HH:mm:ss part only
+                        $apptTime = substr((string)$appt->scheduled_start_time, 0, 8);
+                        return $apptTime === $targetTime;
+                    })->count();
+
+                    $maxPerSlot = $avail->max_appointments ?? 1;
+
                     $slots[] = [
-                        'start_time' => $slotStart->format('H:i'),
-                        'end_time' => $slotEnd->format('H:i'),
-                        'is_available' => $isSlotAvailable,
+                        'start_time' => $slotStartStr,
+                        'end_time' => $slotEndStr,
+                        'is_available' => $bookedCount < $maxPerSlot,
                         'booked_count' => $bookedCount,
-                        'max_capacity' => $avail->max_appointments_per_slot,
+                        'max_capacity' => $maxPerSlot,
                     ];
                 }
             }
@@ -331,6 +380,116 @@ class ExpertAvailabilityController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch available slots',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get authenticated expert's own availability
+     * GET /api/expert/my-availability
+     */
+    public function getMyAvailability(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $expertId = $user->user_id;
+
+            $availability = ExpertAvailability::where('expert_id', $expertId)
+                ->where('is_available', true)
+                ->get();
+
+            $daysMapping = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+            // Transform day_of_week string to integer for frontend
+            $formatted = $availability->map(function ($slot) use ($daysMapping) {
+                $dayInt = array_search(strtolower($slot->day_of_week), $daysMapping);
+                if ($dayInt === false) $dayInt = 0;
+
+                return [
+                    'availability_id' => $slot->availability_id,
+                    'day_of_week' => $dayInt,
+                    'start_time' => substr($slot->start_time, 0, 5), // HH:mm format
+                    'end_time' => substr($slot->end_time, 0, 5),
+                    'slot_duration' => $slot->slot_duration_minutes ?? 30,
+                    'is_available' => (bool)$slot->is_available,
+                ];
+            })->sortBy('day_of_week')->values();
+
+            return response()->json([
+                'success' => true,
+                'data' => $formatted,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch availability',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Set/Update expert's availability (alternative method accepting 'slots' key)
+     * POST /api/expert/set-availability
+     */
+    public function setAvailability(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'slots' => 'required|array',
+            'slots.*.day_of_week' => 'required|integer|min:0|max:6',
+            'slots.*.start_time' => 'required|date_format:H:i',
+            'slots.*.end_time' => 'required|date_format:H:i|after:slots.*.start_time',
+            'slots.*.slot_duration' => 'nullable|integer|min:15|max:120',
+            'slots.*.is_available' => 'nullable|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $user = Auth::user();
+            $expertId = $user->user_id;
+
+            // Delete existing availability
+            ExpertAvailability::where('expert_id', $expertId)->delete();
+
+            $daysMapping = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            $savedSlots = [];
+
+            foreach ($request->slots as $slot) {
+                if (!($slot['is_available'] ?? true)) continue;
+
+                // Map integer day (0-6) to ENUM string
+                $dayName = $daysMapping[$slot['day_of_week']] ?? 'sunday';
+                
+                $savedSlots[] = ExpertAvailability::create([
+                    'expert_id' => $expertId,
+                    'day_of_week' => $dayName,
+                    'start_time' => $slot['start_time'],
+                    'end_time' => $slot['end_time'],
+                    'slot_duration_minutes' => $slot['slot_duration'] ?? 30,
+                    'max_appointments' => 1,
+                    'is_available' => true,
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Availability updated successfully',
+                'message_bn' => 'সময়সূচী সফলভাবে আপডেট হয়েছে',
+                'data' => $savedSlots,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update availability',
                 'error' => $e->getMessage(),
             ], 500);
         }

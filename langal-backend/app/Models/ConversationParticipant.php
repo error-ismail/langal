@@ -101,7 +101,7 @@ class ConversationParticipant extends Model
             ->where('sender_id', '!=', $this->user_id)
             ->where(function ($query) {
                 $query->whereNull($this->last_read_at)
-                    ->orWhere('sent_at', '>', $this->last_read_at);
+                    ->orWhere('created_at', '>', $this->last_read_at);
             })
             ->count();
     }
