@@ -28,50 +28,58 @@ class DataOperatorAuthController extends Controller
      */
     public function sendOtp(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'phone' => 'required|string|min:11|max:15',
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'phone' => 'required|string|min:11|max:15',
+            ]);
 
-        if ($validator->fails()) {
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $phone = $request->phone;
+
+            // Check if phone already registered
+            $user = User::where('phone', $phone)->where('user_type', 'data_operator')->first();
+
+            if ($user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This mobile number is already registered as Data Operator. Please login.',
+                ], 409);
+            }
+
+            // Send OTP
+            $result = $this->otpService->sendOtp($phone, 'register');
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'],
+                ], 400);
+            }
+
             return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $phone = $request->phone;
-
-        // Check if phone already registered
-        $user = User::where('phone', $phone)->where('user_type', 'data_operator')->first();
-
-        if ($user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This mobile number is already registered as Data Operator. Please login.',
-            ], 409);
-        }
-
-        // Send OTP
-        $result = $this->otpService->sendOtp($phone, 'register');
-
-        if (!$result['success']) {
-            return response()->json([
-                'success' => false,
+                'success' => true,
                 'message' => $result['message'],
-            ], 400);
+                'data' => [
+                    'otp_id' => $result['otp_id'],
+                    'expires_in' => $result['expires_in'],
+                    'phone' => $phone,
+                    'otp_code' => $result['otp_code'] ?? null, // For dev
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Data Operator Send OTP Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Server Error: ' . $e->getMessage(),
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => $result['message'],
-            'data' => [
-                'otp_id' => $result['otp_id'],
-                'expires_in' => $result['expires_in'],
-                'phone' => $phone,
-                'otp_code' => $result['otp_code'] ?? null, // For dev
-            ],
-        ]);
     }
 
     /**
@@ -122,10 +130,10 @@ class DataOperatorAuthController extends Controller
                 'is_active' => true,
             ]);
 
-            // Handle Profile Photo Upload
+            // Handle Profile Photo Upload (Azure storage)
             $profilePhotoPath = null;
             if ($request->hasFile('profilePhoto')) {
-                $profilePhotoPath = $request->file('profilePhoto')->store('profile_photos', 'public');
+                $profilePhotoPath = $request->file('profilePhoto')->store('profile_photos', 'azure');
             }
 
             // Get location details from postal_code
@@ -216,82 +224,90 @@ class DataOperatorAuthController extends Controller
      */
     public function login(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'phone' => 'required|string',
-            'password' => 'required|string',
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'phone' => 'required|string',
+                'password' => 'required|string',
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
 
-        $phone = $request->phone;
-        $password = $request->password;
+            $phone = $request->phone;
+            $password = $request->password;
 
-        // Find user by phone and user_type
-        $user = User::where('phone', $phone)
-            ->where('user_type', 'data_operator')
-            ->first();
-
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No Data Operator account found with this mobile number.',
-            ], 404);
-        }
-
-        // Check if account is active
-        if (!$user->is_active) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Your account is inactive. Please contact support.',
-            ], 403);
-        }
-
-        // Verify password
-        if (!Hash::check($password, $user->password_hash)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid password.',
-            ], 401);
-        }
-
-        // Generate token
-        $token = $user->createToken('data-operator-app', ['data_operator'])->plainTextToken;
-        $user->update(['updated_at' => now()]);
-
-        $userData = $user->load(['profile', 'dataOperator'])->toArray();
-
-        // Add full location info from location table based on postal_code
-        if ($user->profile && $user->profile->postal_code) {
-            $location = DB::table('location')
-                ->where('postal_code', $user->profile->postal_code)
+            // Find user by phone and user_type
+            $user = User::where('phone', $phone)
+                ->where('user_type', 'data_operator')
                 ->first();
 
-            if ($location) {
-                $userData['location_info'] = [
-                    'village' => $user->profile->village ?? null,
-                    'postal_code' => $user->profile->postal_code,
-                    'post_office_bn' => $location->post_office_bn ?? null,
-                    'upazila_bn' => $location->upazila_bn ?? null,
-                    'district_bn' => $location->district_bn ?? null,
-                    'division_bn' => $location->division_bn ?? null,
-                ];
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No Data Operator account found with this mobile number.',
+                ], 404);
             }
-        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Login successful',
-            'data' => [
-                'user' => $userData,
-                'token' => $token,
-            ],
-        ]);
+            // Check if account is active
+            if (!$user->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your account is inactive. Please contact support.',
+                ], 403);
+            }
+
+            // Verify password
+            if (!Hash::check($password, $user->password_hash)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid password.',
+                ], 401);
+            }
+
+            // Generate token
+            $token = $user->createToken('data-operator-app', ['data_operator'])->plainTextToken;
+            $user->update(['updated_at' => now()]);
+
+            $userData = $user->load(['profile', 'dataOperator'])->toArray();
+
+            // Add full location info from location table based on postal_code
+            if ($user->profile && $user->profile->postal_code) {
+                $location = DB::table('location')
+                    ->where('postal_code', $user->profile->postal_code)
+                    ->first();
+
+                if ($location) {
+                    $userData['location_info'] = [
+                        'village' => $user->profile->village ?? null,
+                        'postal_code' => $user->profile->postal_code,
+                        'post_office_bn' => $location->post_office_bn ?? null,
+                        'upazila_bn' => $location->upazila_bn ?? null,
+                        'district_bn' => $location->district_bn ?? null,
+                        'division_bn' => $location->division_bn ?? null,
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Login successful',
+                'data' => [
+                    'user' => $userData,
+                    'token' => $token,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Data Operator Login Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Server Error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -396,12 +412,16 @@ class DataOperatorAuthController extends Controller
 
                 // Handle profile photo upload
                 if ($request->hasFile('profile_photo')) {
-                    // Delete old photo if exists
+                    // Delete old photo if exists (try Azure first, then local)
                     if ($profile->profile_photo_url) {
-                        Storage::disk('public')->delete($profile->profile_photo_url);
+                        try {
+                            Storage::disk('azure')->delete($profile->profile_photo_url);
+                        } catch (\Exception $e) {
+                            Storage::disk('public')->delete($profile->profile_photo_url);
+                        }
                     }
 
-                    $profilePhotoPath = $request->file('profile_photo')->store('profile_photos', 'public');
+                    $profilePhotoPath = $request->file('profile_photo')->store('profile_photos', 'azure');
                     $profile->profile_photo_url = $profilePhotoPath;
                 }
 

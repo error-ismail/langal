@@ -12,13 +12,13 @@ const Index = () => {
     if (user) {
       console.log('Index.tsx - Current user:', user);
       console.log('Index.tsx - User type:', user.type);
-      
+
       switch (user.type) {
         case 'data_operator':
           navigate('/data-operator-dashboard');
           break;
         case 'expert':
-          navigate('/consultant-dashboard');
+          navigate('/expert-dashboard');
           break;
         case 'customer':
           navigate('/customer-dashboard');
