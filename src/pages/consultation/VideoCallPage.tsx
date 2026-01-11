@@ -438,20 +438,20 @@ const VideoCallPage = () => {
         try {
           // First enable the track
           await localTracksRef.current.videoTrack.setEnabled(true);
-          
+
           // Then try to publish if not already published
           if (clientRef.current) {
             // Check if video track is already published by checking client's localTracks
             const publishedTracks = clientRef.current.localTracks || [];
             const isPublished = publishedTracks.includes(localTracksRef.current.videoTrack);
-            
+
             if (!isPublished) {
               console.log('[Agora] Publishing video track...');
               await clientRef.current.publish([localTracksRef.current.videoTrack]);
               console.log('[Agora] Video track published successfully');
             }
           }
-          
+
           if (localVideoRef.current) {
             localTracksRef.current.videoTrack.play(localVideoRef.current);
           }
