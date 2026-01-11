@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\FarmerAuthController;
 use App\Http\Controllers\Api\CustomerAuthController;
 use App\Http\Controllers\Api\ExpertAuthController;
 use App\Http\Controllers\Api\DataOperatorAuthController;
+use App\Http\Controllers\Api\DataOperatorNotificationController;
 use App\Http\Controllers\Api\FieldDataCollectionController;
 use App\Http\Controllers\Api\MarketplaceController;
 use App\Http\Controllers\Api\ImageUploadController;
@@ -177,6 +178,12 @@ Route::prefix('data-operator')->group(function () {
 
         // Manual farmer entry for field data collection
         Route::post('/field-data-farmers', [DataOperatorAuthController::class, 'createFieldDataFarmer']);
+
+        // Notification routes
+        Route::get('/notifications', [DataOperatorNotificationController::class, 'index']);
+        Route::get('/notifications/unread-count', [DataOperatorNotificationController::class, 'unreadCount']);
+        Route::post('/notifications/{id}/read', [DataOperatorNotificationController::class, 'markAsRead']);
+        Route::post('/notifications/read-all', [DataOperatorNotificationController::class, 'markAllAsRead']);
     });
 });
 
