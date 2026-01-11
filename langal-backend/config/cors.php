@@ -34,8 +34,7 @@ return [
     ],
 
     'allowed_origins_patterns' => [
-        'http://localhost:*',
-        'http://127.0.0.1:*',
+        '/^https?:\\/\\/(localhost|127\\.0\\.0\\.1)(:[0-9]+)?$/',
     ],
 
     'allowed_headers' => ['*'],

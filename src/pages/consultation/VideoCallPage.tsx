@@ -58,6 +58,10 @@ const VideoCallPage = () => {
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
+  // Remote user state tracking
+  const [remoteUserJoined, setRemoteUserJoined] = useState(false);
+  const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(false);
+
   // Agora client and tracks
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const clientRef = useRef<any>(null);
@@ -68,6 +72,8 @@ const VideoCallPage = () => {
     audioTrack: null,
     videoTrack: null,
   });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const remoteUsersRef = useRef<Map<number, any>>(new Map());
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -76,7 +82,8 @@ const VideoCallPage = () => {
     }
 
     return () => {
-      cleanup();
+      // Cleanup on unmount - async cleanup but we don't await in useEffect cleanup
+      cleanup().catch(err => console.error('[Agora] Cleanup error on unmount:', err));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appointmentId]);
@@ -131,10 +138,93 @@ const VideoCallPage = () => {
         codec: "vp8",
       });
 
-      // Set up event handlers
-      clientRef.current.on("user-published", handleUserPublished);
-      clientRef.current.on("user-unpublished", handleUserUnpublished);
-      clientRef.current.on("user-left", handleUserLeft);
+      // Set up event handlers for remote users
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      clientRef.current.on("user-published", async (remoteUser: any, mediaType: string) => {
+        console.log('[Agora] Remote user published:', { uid: remoteUser.uid, mediaType });
+
+        try {
+          // Subscribe to the remote user's track
+          await clientRef.current.subscribe(remoteUser, mediaType);
+          console.log('[Agora] Subscribed to remote user:', { uid: remoteUser.uid, mediaType });
+
+          // Store remote user reference
+          remoteUsersRef.current.set(remoteUser.uid, remoteUser);
+          setRemoteUserJoined(true);
+
+          if (mediaType === "video") {
+            console.log('[Agora] Playing remote video track...');
+            const remoteVideoTrack = remoteUser.videoTrack;
+            if (remoteVideoTrack) {
+              // Wait a bit for DOM to be ready
+              setTimeout(() => {
+                if (remoteVideoRef.current) {
+                  // Clear any existing content
+                  remoteVideoRef.current.innerHTML = "";
+                  remoteVideoTrack.play(remoteVideoRef.current);
+                  setRemoteVideoEnabled(true);
+                  console.log('[Agora] Remote video playing successfully');
+                } else {
+                  console.error('[Agora] remoteVideoRef.current is null');
+                }
+              }, 100);
+            }
+          }
+
+          if (mediaType === "audio") {
+            console.log('[Agora] Playing remote audio track...');
+            const remoteAudioTrack = remoteUser.audioTrack;
+            if (remoteAudioTrack) {
+              remoteAudioTrack.play();
+              console.log('[Agora] Remote audio playing successfully');
+            }
+          }
+        } catch (err) {
+          console.error('[Agora] Error subscribing to remote user:', err);
+        }
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      clientRef.current.on("user-unpublished", (remoteUser: any, mediaType: string) => {
+        console.log('[Agora] Remote user unpublished:', { uid: remoteUser.uid, mediaType });
+        if (mediaType === "video") {
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.innerHTML = "";
+          }
+          setRemoteVideoEnabled(false);
+        }
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      clientRef.current.on("user-joined", (remoteUser: any) => {
+        console.log('[Agora] Remote user joined:', { uid: remoteUser.uid });
+        setRemoteUserJoined(true);
+        toast({
+          title: "সংযুক্ত",
+          description: "অপর পক্ষ কলে যোগ দিয়েছেন",
+        });
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      clientRef.current.on("user-left", (remoteUser: any, reason: string) => {
+        console.log('[Agora] Remote user left:', { uid: remoteUser.uid, reason });
+        remoteUsersRef.current.delete(remoteUser.uid);
+        setRemoteUserJoined(false);
+        setRemoteVideoEnabled(false);
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.innerHTML = "";
+        }
+        toast({
+          title: "কল শেষ",
+          description: "অপর পক্ষ কল থেকে বের হয়ে গেছেন",
+        });
+        handleEndCall();
+      });
+
+      // Connection state change
+      clientRef.current.on("connection-state-change", (curState: string, prevState: string) => {
+        console.log('[Agora] Connection state changed:', { prevState, curState });
+      });
 
       return true;
     } catch (err) {
@@ -145,34 +235,19 @@ const VideoCallPage = () => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleUserPublished = async (remoteUser: any, mediaType: string) => {
-    await clientRef.current.subscribe(remoteUser, mediaType);
-
-    if (mediaType === "video") {
-      const remoteVideoTrack = remoteUser.videoTrack;
-      if (remoteVideoRef.current) {
-        remoteVideoTrack.play(remoteVideoRef.current);
-      }
-    }
-
-    if (mediaType === "audio") {
-      const remoteAudioTrack = remoteUser.audioTrack;
-      remoteAudioTrack.play();
-    }
+    // This is now handled inside initializeAgora for proper closure
+    console.log('[Agora] handleUserPublished called (legacy):', { uid: remoteUser.uid, mediaType });
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleUserUnpublished = (remoteUser: any, mediaType: string) => {
-    if (mediaType === "video" && remoteVideoRef.current) {
-      remoteVideoRef.current.innerHTML = "";
-    }
+    // This is now handled inside initializeAgora for proper closure
+    console.log('[Agora] handleUserUnpublished called (legacy):', { uid: remoteUser.uid, mediaType });
   };
 
   const handleUserLeft = () => {
-    toast({
-      title: "কল শেষ",
-      description: "অপর পক্ষ কল থেকে বের হয়ে গেছেন",
-    });
-    handleEndCall();
+    // This is now handled inside initializeAgora for proper closure
+    console.log('[Agora] handleUserLeft called (legacy)');
   };
 
   const startCallSession = async () => {
@@ -255,17 +330,16 @@ const VideoCallPage = () => {
       // Create local tracks - always create both audio and video
       // This allows users to toggle video on/off during the call
       const isVideoCall = appointment?.consultation_type === "video";
+      console.log('[Agora] Call type:', appointment?.consultation_type, 'isVideoCall:', isVideoCall);
 
       try {
         localTracksRef.current.videoTrack = await window.AgoraRTC.createCameraVideoTrack();
+        console.log('[Agora] Camera video track created successfully');
         if (localVideoRef.current) {
           localTracksRef.current.videoTrack.play(localVideoRef.current);
         }
-        // If it's an audio call, start with video disabled
-        if (!isVideoCall) {
-          localTracksRef.current.videoTrack.setEnabled(false);
-          setIsVideoOff(true);
-        }
+        // If it's an audio call, start with video disabled but don't disable the track yet
+        // We'll handle this after publishing
       } catch (videoErr) {
         console.warn("Could not access camera:", videoErr);
         localTracksRef.current.videoTrack = null;
@@ -273,19 +347,30 @@ const VideoCallPage = () => {
       }
 
       localTracksRef.current.audioTrack = await window.AgoraRTC.createMicrophoneAudioTrack();
+      console.log('[Agora] Microphone audio track created successfully');
 
-      // Publish tracks - only publish enabled tracks
-      // For audio calls, only publish audio track initially
-      // Video track can be published later when user enables it
+      // Publish tracks - always publish both audio and video if video track exists
+      // For video calls: both tracks enabled
+      // For audio calls: video track will be disabled after publishing
       const tracksToPublish = [];
       tracksToPublish.push(localTracksRef.current.audioTrack);
 
-      // Only publish video track if it's a video call and track exists
-      if (isVideoCall && localTracksRef.current.videoTrack) {
+      // Always publish video track if it exists (even for audio calls)
+      // This allows user to toggle video on during the call
+      if (localTracksRef.current.videoTrack) {
         tracksToPublish.push(localTracksRef.current.videoTrack);
       }
 
+      console.log('[Agora] Publishing tracks:', tracksToPublish.length);
       await clientRef.current.publish(tracksToPublish);
+      console.log('[Agora] Tracks published successfully');
+
+      // Now disable video if it's an audio call (after publishing)
+      if (!isVideoCall && localTracksRef.current.videoTrack) {
+        localTracksRef.current.videoTrack.setEnabled(false);
+        setIsVideoOff(true);
+        console.log('[Agora] Video disabled for audio call');
+      }
 
       setConnected(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -303,37 +388,80 @@ const VideoCallPage = () => {
 
   const handleEndCall = async () => {
     try {
+      // First cleanup Agora resources
+      await cleanup();
+
+      // Then notify server
       if (callData?.call_id) {
         await endCall(callData.call_id);
       }
     } catch (err) {
       console.error("Error ending call:", err);
     } finally {
-      cleanup();
       navigate(-1);
     }
   };
 
-  const cleanup = () => {
+  const cleanup = async () => {
+    console.log('[Agora] Starting cleanup...');
+
     // Stop duration counter
     if (durationIntervalRef.current) {
       clearInterval(durationIntervalRef.current);
+      durationIntervalRef.current = null;
     }
 
-    // Close local tracks
-    if (localTracksRef.current.audioTrack) {
-      localTracksRef.current.audioTrack.close();
-    }
-    if (localTracksRef.current.videoTrack) {
-      localTracksRef.current.videoTrack.close();
+    try {
+      // Unpublish and close local tracks
+      if (clientRef.current) {
+        const tracksToUnpublish = [];
+
+        if (localTracksRef.current.audioTrack) {
+          tracksToUnpublish.push(localTracksRef.current.audioTrack);
+        }
+        if (localTracksRef.current.videoTrack) {
+          tracksToUnpublish.push(localTracksRef.current.videoTrack);
+        }
+
+        // Unpublish tracks if connected
+        if (tracksToUnpublish.length > 0 && connected) {
+          try {
+            await clientRef.current.unpublish(tracksToUnpublish);
+            console.log('[Agora] Tracks unpublished');
+          } catch (err) {
+            console.warn('[Agora] Error unpublishing tracks:', err);
+          }
+        }
+      }
+
+      // Close local tracks
+      if (localTracksRef.current.audioTrack) {
+        localTracksRef.current.audioTrack.close();
+        localTracksRef.current.audioTrack = null;
+        console.log('[Agora] Audio track closed');
+      }
+      if (localTracksRef.current.videoTrack) {
+        localTracksRef.current.videoTrack.close();
+        localTracksRef.current.videoTrack = null;
+        console.log('[Agora] Video track closed');
+      }
+
+      // Leave channel
+      if (clientRef.current) {
+        await clientRef.current.leave();
+        console.log('[Agora] Left channel');
+      }
+    } catch (err) {
+      console.error('[Agora] Error during cleanup:', err);
     }
 
-    // Leave channel
-    if (clientRef.current) {
-      clientRef.current.leave();
-    }
-
+    // Reset state
+    remoteUsersRef.current.clear();
+    setRemoteUserJoined(false);
+    setRemoteVideoEnabled(false);
     setConnected(false);
+
+    console.log('[Agora] Cleanup complete');
   };
 
   const toggleMute = () => {
@@ -346,25 +474,41 @@ const VideoCallPage = () => {
   const toggleVideo = async () => {
     if (localTracksRef.current.videoTrack) {
       if (isVideoOff) {
-        // Enabling video - need to publish if not already published
-        localTracksRef.current.videoTrack.setEnabled(true);
-        // Check if track is not published yet (for audio calls that started without video)
+        // Enabling video - need to enable first, then publish if not already published
         try {
-          // Try to publish the video track if it wasn't published initially
-          if (clientRef.current && !localTracksRef.current.videoTrack._published) {
-            await clientRef.current.publish([localTracksRef.current.videoTrack]);
+          // First enable the track
+          await localTracksRef.current.videoTrack.setEnabled(true);
+
+          // Then try to publish if not already published
+          if (clientRef.current) {
+            // Check if video track is already published by checking client's localTracks
+            const publishedTracks = clientRef.current.localTracks || [];
+            const isPublished = publishedTracks.includes(localTracksRef.current.videoTrack);
+
+            if (!isPublished) {
+              console.log('[Agora] Publishing video track...');
+              await clientRef.current.publish([localTracksRef.current.videoTrack]);
+              console.log('[Agora] Video track published successfully');
+            }
           }
+
+          if (localVideoRef.current) {
+            localTracksRef.current.videoTrack.play(localVideoRef.current);
+          }
+          setIsVideoOff(false);
         } catch (err) {
-          console.warn("Video track already published or error:", err);
-        }
-        if (localVideoRef.current) {
-          localTracksRef.current.videoTrack.play(localVideoRef.current);
+          console.error("Error enabling video:", err);
+          toast({
+            title: "ত্রুটি",
+            description: "ভিডিও চালু করতে সমস্যা হয়েছে",
+            variant: "destructive",
+          });
         }
       } else {
         // Disabling video
         localTracksRef.current.videoTrack.setEnabled(false);
+        setIsVideoOff(true);
       }
-      setIsVideoOff(!isVideoOff);
     }
   };
 
@@ -448,12 +592,15 @@ const VideoCallPage = () => {
     <div className="min-h-screen bg-gray-900 flex flex-col">
       {/* Video Area */}
       <div className="flex-1 relative">
-        {/* Remote Video (Full Screen) */}
+        {/* Remote Video Container (Full Screen) - No React children inside to avoid DOM conflicts with Agora */}
         <div
           ref={remoteVideoRef}
-          className="absolute inset-0 bg-gray-800 flex items-center justify-center"
-        >
-          {!connected && (
+          className="absolute inset-0 bg-gray-800"
+        />
+
+        {/* Placeholder overlay - separate from video container to avoid DOM conflicts */}
+        {(!connected || !remoteVideoEnabled) && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-800 z-5">
             <div className="text-center">
               <Avatar className="h-32 w-32 mx-auto mb-4 border-4 border-gray-700">
                 <AvatarImage
@@ -466,26 +613,34 @@ const VideoCallPage = () => {
               <h2 className="text-white text-xl font-semibold mb-2">
                 {otherParty?.name || "অজানা"}
               </h2>
-              {connecting ? (
+              {!connected && connecting && (
                 <p className="text-gray-400">সংযোগ হচ্ছে...</p>
-              ) : (
+              )}
+              {!connected && !connecting && (
                 <p className="text-gray-400">কল শুরু করতে নিচের বাটনে ক্লিক করুন</p>
               )}
+              {connected && !remoteUserJoined && (
+                <p className="text-yellow-400">অপর পক্ষের অপেক্ষায়...</p>
+              )}
+              {connected && remoteUserJoined && !remoteVideoEnabled && (
+                <p className="text-blue-400">ক্যামেরা বন্ধ আছে</p>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Local Video (Small) - Always show for camera toggle */}
+        {/* Local Video (Small) - No React children inside to avoid DOM conflicts */}
         <div
           ref={localVideoRef}
           className="absolute top-4 right-4 w-32 h-44 bg-gray-700 rounded-xl overflow-hidden shadow-lg z-10"
-        >
-          {isVideoOff && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-              <VideoOff className="h-8 w-8 text-gray-500" />
-            </div>
-          )}
-        </div>
+        />
+
+        {/* Local video off overlay - separate from video container */}
+        {isVideoOff && (
+          <div className="absolute top-4 right-4 w-32 h-44 flex items-center justify-center bg-gray-800 rounded-xl z-10">
+            <VideoOff className="h-8 w-8 text-gray-500" />
+          </div>
+        )}
 
         {/* Call Duration */}
         {connected && (
@@ -499,6 +654,15 @@ const VideoCallPage = () => {
           <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-500 rounded-full px-3 py-1 z-10">
             <p className="text-white text-xs flex items-center gap-1">
               <MicOff className="h-3 w-3" /> মিউট
+            </p>
+          </div>
+        )}
+
+        {/* Remote User Joined Indicator */}
+        {connected && remoteUserJoined && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-green-500 rounded-full px-3 py-1 z-10 mt-8">
+            <p className="text-white text-xs flex items-center gap-1">
+              সংযুক্ত
             </p>
           </div>
         )}
