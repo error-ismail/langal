@@ -32,11 +32,7 @@ const Step1BasicInfo: React.FC<Step1Props> = ({ formData, updateFormData }) => {
   const [farmerSearch, setFarmerSearch] = useState('');
   const [farmers, setFarmers] = useState<Farmer[]>([]);
   const [searchingFarmer, setSearchingFarmer] = useState(false);
-DataOperatorStatisticsNew.tsx:115 
- GET http://127.0.0.1:8000/api/data-operator/statistics?division=%E0%A6%9A%E0%A6…sion&period_type=yearly&selected_year=%E0%A7%A8%E0%A7%A6%E0%A7%A8%E0%A7%AB 500 (Internal Server Error)
 
-DataOperatorStatisticsNew.tsx:129 Statistics API Error: 
-AxiosError {message: 'Request failed with status code 500', name: 'AxiosError', code: 'ERR_BAD_RESPONSE', config: {…}, request: XMLHttpRequest, …}
   const districts = [
     "ঢাকা", "চট্টগ্রাম", "সিলেট", "কুমিল্লা", "রংপুর", "বরিশাল",
     "খুলনা", "ময়মনসিংহ", "রাজশাহী", "গাজীপুর"
@@ -98,7 +94,7 @@ AxiosError {message: 'Request failed with status code 500', name: 'AxiosError', 
     });
     setFarmers([]);
     setFarmerSearch('');
-    
+
     toast({
       title: "কৃষক নির্বাচিত",
       description: `${farmer.full_name} নির্বাচন করা হয়েছে`,
@@ -206,7 +202,7 @@ AxiosError {message: 'Request failed with status code 500', name: 'AxiosError', 
             <CardContent>
               <div className="space-y-4">
                 <h3 className="text-md font-medium border-b pb-2">ব্যক্তিগত তথ্য</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="manual_farmer_name">
@@ -215,7 +211,7 @@ AxiosError {message: 'Request failed with status code 500', name: 'AxiosError', 
                     <Input
                       id="manual_farmer_name"
                       value={formData.manual_farmer_name || ''}
-                      onChange={(e) => updateFormData({ 
+                      onChange={(e) => updateFormData({
                         manual_farmer_name: e.target.value,
                         farmer_id: undefined
                       })}
@@ -303,8 +299,8 @@ AxiosError {message: 'Request failed with status code 500', name: 'AxiosError', 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="manual_farmer_district">জেলা</Label>
-                    <Select 
-                      value={formData.manual_farmer_district || ''} 
+                    <Select
+                      value={formData.manual_farmer_district || ''}
                       onValueChange={(value) => updateFormData({ manual_farmer_district: value })}
                     >
                       <SelectTrigger>
@@ -336,8 +332,8 @@ AxiosError {message: 'Request failed with status code 500', name: 'AxiosError', 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="manual_farmer_occupation">পেশা</Label>
-                    <Select 
-                      value={formData.manual_farmer_occupation || 'কৃষক'} 
+                    <Select
+                      value={formData.manual_farmer_occupation || 'কৃষক'}
                       onValueChange={(value) => updateFormData({ manual_farmer_occupation: value })}
                     >
                       <SelectTrigger>
