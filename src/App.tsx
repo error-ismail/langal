@@ -338,6 +338,10 @@ const App = () => {
                     element={<DataOperatorStatistics />}
                   />
                   <Route
+                    path="/data-operator/field-data-statistics"
+                    element={<FieldDataStatisticsDashboard />}
+                  />
+                  <Route
                     path="/data-operator/social-feed-reports"
                     element={<SocialFeedReportMng />}
                   />

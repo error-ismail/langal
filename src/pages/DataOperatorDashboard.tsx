@@ -86,16 +86,16 @@ const DataOperatorDashboardNew = () => {
             countLabel: "আজকের সংগ্রহ",
             route: "/data-operator/field-data-collection"
         },
-        {
-            id: "statistics",
-            title: "পরিসংখ্যান",
-            description: "সামগ্রিক পরিসংখ্যান ও ট্রেন্ড বিশ্লেষণ",
-            icon: BarChart3,
-            bgGradient: "from-teal-500 to-teal-600",
-            count: 156,
-            countLabel: "মোট কৃষক",
-            route: "/data-operator/statistics"
-        },
+        // {
+        //     id: "statistics",
+        //     title: "পরিসংখ্যান",
+        //     description: "সামগ্রিক পরিসংখ্যান ও ট্রেন্ড বিশ্লেষণ",
+        //     icon: BarChart3,
+        //     bgGradient: "from-teal-500 to-teal-600",
+        //     count: 156,
+        //     countLabel: "মোট কৃষক",
+        //     route: "/data-operator/statistics"
+        // },
         {
             id: "govt-statistics",
             title: "সরকারি প্রতিবেদন",
@@ -156,7 +156,7 @@ const DataOperatorDashboardNew = () => {
 
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Quick Stats */}
+                {/* Quick Stats - Commented out (dummy data)
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                     {quickStats.map((stat, index) => (
                         <Card key={index} className="hover:shadow-lg transition-shadow">
@@ -174,6 +174,7 @@ const DataOperatorDashboardNew = () => {
                         </Card>
                     ))}
                 </div>
+                */}
 
                 {/* Main Feature Cards - 4 items - Redesigned for Mobile */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
@@ -235,7 +236,7 @@ const DataOperatorDashboardNew = () => {
                     })}
                 </div>
 
-                {/* Recent Activity Section */}
+                {/* Recent Activity Section - Commented out (dummy data)
                 <Card className="mt-8">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -268,6 +269,7 @@ const DataOperatorDashboardNew = () => {
                         </div>
                     </CardContent>
                 </Card>
+                */}
             </div>
 
             {/* Profile Dialog */}
