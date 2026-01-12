@@ -52,6 +52,7 @@ const ConsultantDashboard = () => {
     // Expert stats
     const [totalConsultations, setTotalConsultations] = useState<number>(0);
     const [completedConsultations, setCompletedConsultations] = useState<number>(0);
+    const [specialization, setSpecialization] = useState<string>("");
     const [statsLoading, setStatsLoading] = useState(true);
 
     // রাত কিনা চেক করার হেল্পার
@@ -106,6 +107,7 @@ const ConsultantDashboard = () => {
                 if (response.success && response.data) {
                     setTotalConsultations(response.data.total_appointments || 0);
                     setCompletedConsultations(response.data.completed_appointments || 0);
+                    setSpecialization(response.data.specialization_bn || response.data.specialization || "");
                 }
             } catch (error) {
                 console.error("Expert stats fetch error:", error);
@@ -288,7 +290,7 @@ const ConsultantDashboard = () => {
                         </CardContent>
                     </Card>
 
-                    {/* সফলতার হার */}
+                    {/* বিশেষত্ব */}
                     <Card className="border">
                         <CardContent className="p-4">
                             <div className="flex items-center gap-3">
@@ -296,14 +298,12 @@ const ConsultantDashboard = () => {
                                     <CheckCircle className="h-5 w-5 text-green-600" />
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground">সফলতার হার</p>
+                                    <p className="text-xs text-muted-foreground">বিশেষত্ব</p>
                                     {statsLoading ? (
                                         <Loader2 className="h-5 w-5 animate-spin text-green-600" />
                                     ) : (
-                                        <p className="text-lg font-semibold">
-                                            {totalConsultations > 0
-                                                ? toBengaliNumber(Math.round((completedConsultations / totalConsultations) * 100))
-                                                : toBengaliNumber(0)}%
+                                        <p className="text-sm font-semibold line-clamp-1">
+                                            {specialization || "তথ্য নেই"}
                                         </p>
                                     )}
                                 </div>
