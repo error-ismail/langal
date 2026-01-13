@@ -168,12 +168,12 @@ const ExpertProfilePage = () => {
             {expert.specialization_bn || expert.specialization}
           </p>
 
-          <div className="flex items-center gap-2 mt-3 bg-gray-50 px-3 py-1 rounded-full">
+          {/* <div className="flex items-center gap-2 mt-3 bg-gray-50 px-3 py-1 rounded-full">
             {renderStars(expert.rating)}
             <span className="text-sm text-gray-600 font-medium">
               {expert.rating.toFixed(1)} ({expert.total_reviews} রিভিউ)
             </span>
-          </div>
+          </div> */}
         </div>
 
         {/* Quick Stats */}
@@ -363,12 +363,12 @@ const ExpertProfilePage = () => {
       </div>
 
       {/* Floating TTS */}
-      <div className="fixed bottom-24 right-4 z-40">
+      {/* <div className="fixed bottom-24 right-4 z-40">
         <TTSButton
           text={`${expert.user?.profile?.full_name} হলেন একজন ${expert.specialization_bn || expert.specialization} বিশেষজ্ঞ। তার ${expert.experience_years} বছরের অভিজ্ঞতা রয়েছে এবং ${expert.total_consultations}টিরও বেশি পরামর্শ দিয়েছেন।`}
           className="bg-green-600 hover:bg-green-700 h-14 w-14 rounded-full shadow-lg"
         />
-      </div>
+      </div> */}
     </div>
   );
 };
