@@ -11,31 +11,62 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDataOperatorNotifications } from "@/contexts/DataOperatorNotificationContext";
 import { getProfilePhotoUrl } from "@/lib/utils";
 import {
     UserCheck,
     Bell,
     User,
-    LogOut
+    LogOut,
+    UserPlus,
+    AlertTriangle,
+    MessageSquareWarning,
+    Loader2
 } from "lucide-react";
 import DataOperatorProfile from "@/components/data-operator/DataOperatorProfile";
 
 const DataOperatorHeader = () => {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
+    const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useDataOperatorNotifications();
     const [showProfile, setShowProfile] = useState(false);
-    const [notifications] = useState([
-        { id: 1, message: "৫টি নতুন প্রোফাইল যাচাইয়ের অপেক্ষায়", time: "৫ মিনিট আগে", unread: true },
-        { id: 2, message: "২টি ফসল যাচাই সম্পন্ন হয়েছে", time: "১ ঘণ্টা আগে", unread: true },
-        { id: 3, message: "৩টি নতুন সোশ্যাল ফিড রিপোর্ট", time: "২ ঘণ্টা আগে", unread: false },
-    ]);
 
     const handleLogout = () => {
         logout();
         navigate('/data-operator');
     };
 
-    const unreadCount = notifications.filter(n => n.unread).length;
+    // Get icon based on notification type
+    const getNotificationIcon = (type: string) => {
+        switch (type) {
+            case 'new_farmer_registration':
+            case 'new_expert_registration':
+            case 'new_customer_registration':
+                return <UserPlus className="h-4 w-4 text-green-600" />;
+            case 'post_report':
+                return <AlertTriangle className="h-4 w-4 text-red-600" />;
+            case 'comment_report':
+                return <MessageSquareWarning className="h-4 w-4 text-orange-600" />;
+            default:
+                return <Bell className="h-4 w-4 text-blue-600" />;
+        }
+    };
+
+    const handleNotificationClick = async (notification: any) => {
+        // Mark as read
+        if (!notification.read) {
+            await markAsRead(notification.id);
+        }
+
+        // Navigate based on type
+        if (notification.type === 'new_farmer_registration' ||
+            notification.type === 'new_expert_registration' ||
+            notification.type === 'new_customer_registration') {
+            navigate('/data-operator/profile-verification');
+        } else if (notification.type === 'post_report' || notification.type === 'comment_report') {
+            navigate('/data-operator/social-feed-reports');
+        }
+    };
 
     return (
         <>
@@ -46,11 +77,11 @@ const DataOperatorHeader = () => {
                         {/* Logo and Title */}
                         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/data-operator-dashboard')}>
                             <div className="relative">
-                                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-green-500 via-green-600 to-emerald-600 flex items-center justify-center shadow-lg">
-                                    <span className="text-white font-bold text-xl">🌾</span>
+                                <div className="h-12 w-12 rounded-xl overflow-hidden shadow-lg">
+                                    <img src="/img/image.png" alt="Data Operator Logo" className="h-full w-full object-cover" />
                                 </div>
-                                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-md">
-                                    <UserCheck className="h-3 w-3 text-white" strokeWidth={3} />
+                                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full overflow-hidden shadow-md">
+                                    <img src="/img/Asset 3.png" alt="Langol Logo" className="h-full w-full object-cover" />
                                 </div>
                             </div>
                             <div>
@@ -65,34 +96,76 @@ const DataOperatorHeader = () => {
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="relative">
-                                        <Bell className="h-5 w-5 text-gray-600" />
+                                        {loading ? (
+                                            <Loader2 className="h-5 w-5 text-gray-600 animate-spin" />
+                                        ) : (
+                                            <Bell className="h-5 w-5 text-gray-600" />
+                                        )}
                                         {unreadCount > 0 && (
                                             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
-                                                {unreadCount}
+                                                {unreadCount > 9 ? '9+' : unreadCount}
                                             </span>
                                         )}
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-80">
-                                    <DropdownMenuLabel className="font-semibold">নোটিফিকেশন</DropdownMenuLabel>
+                                <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
+                                    <div className="flex items-center justify-between px-2">
+                                        <DropdownMenuLabel className="font-semibold">নোটিফিকেশন</DropdownMenuLabel>
+                                        {unreadCount > 0 && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-xs text-blue-600 h-6"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    markAllAsRead();
+                                                }}
+                                            >
+                                                সব পড়া হয়েছে
+                                            </Button>
+                                        )}
+                                    </div>
                                     <DropdownMenuSeparator />
-                                    {notifications.map((notification) => (
-                                        <DropdownMenuItem key={notification.id} className="flex flex-col items-start p-3 cursor-pointer">
-                                            <div className="flex items-start justify-between w-full">
-                                                <p className={`text-sm ${notification.unread ? 'font-semibold' : 'font-normal'}`}>
-                                                    {notification.message}
-                                                </p>
-                                                {notification.unread && (
-                                                    <span className="h-2 w-2 bg-blue-600 rounded-full mt-1"></span>
+                                    {notifications.length === 0 ? (
+                                        <div className="p-4 text-center text-gray-500 text-sm">
+                                            কোনো নোটিফিকেশন নেই
+                                        </div>
+                                    ) : (
+                                        notifications.slice(0, 10).map((notification) => (
+                                            <DropdownMenuItem
+                                                key={notification.id}
+                                                className="flex items-start gap-3 p-3 cursor-pointer hover:bg-gray-50"
+                                                onClick={() => handleNotificationClick(notification)}
+                                            >
+                                                <div className="mt-0.5">
+                                                    {getNotificationIcon(notification.type)}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className={`text-sm leading-tight ${!notification.read ? 'font-semibold text-gray-900' : 'font-normal text-gray-700'}`}>
+                                                        {notification.title}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                                                        {notification.message}
+                                                    </p>
+                                                    <span className="text-xs text-gray-400 mt-1 block">{notification.time}</span>
+                                                </div>
+                                                {!notification.read && (
+                                                    <span className="h-2 w-2 bg-blue-600 rounded-full mt-1.5 flex-shrink-0"></span>
                                                 )}
-                                            </div>
-                                            <span className="text-xs text-gray-500 mt-1">{notification.time}</span>
-                                        </DropdownMenuItem>
-                                    ))}
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="text-center text-blue-600 font-medium cursor-pointer">
-                                        সব দেখুন
-                                    </DropdownMenuItem>
+                                            </DropdownMenuItem>
+                                        ))
+                                    )}
+                                    {notifications.length > 10 && (
+                                        <>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                className="text-center text-blue-600 font-medium cursor-pointer justify-center"
+                                                onClick={() => navigate('/data-operator/notifications')}
+                                            >
+                                                সব দেখুন ({notifications.length}টি)
+                                            </DropdownMenuItem>
+                                        </>
+                                    )}
                                 </DropdownMenuContent>
                             </DropdownMenu>
 

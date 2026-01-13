@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { DataOperatorNotificationProvider } from "@/contexts/DataOperatorNotificationContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import IntroAnimation from "@/components/IntroAnimation";
 import { useState, useEffect } from "react";
@@ -37,9 +38,10 @@ import DataOperatorFieldData from "./pages/DataOperatorFieldData";
 import DataOperatorFieldDataCollection from "./pages/DataOperatorFieldDataCollection";
 import DataOperatorReports from "./pages/DataOperatorReports";
 import DataOperatorStatistics from "./pages/DataOperatorStatisticsNew2";
+import FieldDataStatisticsDashboard from "./pages/FieldDataStatisticsDashboard";
 import SocialFeedReportMng from "./components/data-operator/SocialFeedReportMng";
-import MarketPrices from "./pages/MarketPrices";
-import AgriculturalNews from "./pages/AgriculturalNews";
+// import MarketPrices from "./pages/MarketPrices";
+// import AgriculturalNews from "./pages/AgriculturalNews";
 import FarmerDashboard from "./pages/FarmerDashboard";
 import CentralMarketplace from "./pages/CentralMarketplace";
 import TTSDemo from "./pages/TTSDemo";
@@ -119,334 +121,376 @@ const App = () => {
       <TooltipProvider>
         <AuthProvider>
           <NotificationProvider>
-            <Toaster />
-            <Sonner />
-            <OfflineSyncHandler />
-            <ExpertHeartbeatHandler />
-            {showIntro && !hasShownIntro && (
-              <IntroAnimation onComplete={handleIntroComplete} duration={3500} />
-            )}
-            <BrowserRouter
-              basename={basename}
-              future={{
-                v7_startTransition: true,
-                v7_relativeSplatPath: true
-              }}
-            >
-              <Routes>
-                <Route
-                  path="/login"
-                  element={
-                    <ProtectedRoute requireAuth={false}>
-                      <Login />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/register"
-                  element={
-                    <ProtectedRoute requireAuth={false}>
-                      <Register />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/"
-                  element={<Index />}
-                />
-                <Route
-                  path="/social-feed"
-                  element={
-                    <ProtectedRoute>
-                      <SocialFeed />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/marketplace"
-                  element={
-                    <ProtectedRoute>
-                      <Marketplace />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/central-marketplace"
-                  element={
-                    <ProtectedRoute>
-                      <CentralMarketplace />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/diagnosis"
-                  element={
-                    <ProtectedRoute>
-                      <Diagnosis />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/recommendation"
-                  element={
-                    <ProtectedRoute>
-                      <Recommendation />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/news-feed"
-                  element={
-                    <ProtectedRoute>
-                      <NewsFeed />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/weather-planning"
-                  element={
-                    <ProtectedRoute>
-                      <WeatherPlanning />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/abhaowa-purbabhas"
-                  element={
-                    <ProtectedRoute>
-                      <WeatherForecast />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consultation"
-                  element={
-                    <ProtectedRoute>
-                      <ExpertListPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/expert-dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <ExpertDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/expert-profile"
-                  element={
-                    <ProtectedRoute>
-                      <ExpertProfile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/customer-dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <CustomerDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/customer-profile"
-                  element={
-                    <ProtectedRoute>
-                      <CustomerProfile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consultant-dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <ConsultantDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consultant-profile"
-                  element={
-                    <ProtectedRoute>
-                      <ConsultantProfile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/farmer-dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <FarmerDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/data-operator"
-                  element={<DataOperatorAuth />}
-                />
-                <Route
-                  path="/data-operator/home"
-                  element={<DataOperatorHome />}
-                />
-                <Route
-                  path="/data-operator-dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <DataOperatorDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/data-operator/profile-verification"
-                  element={<DataOperatorProfileVerification />}
-                />
-                <Route
-                  path="/data-operator/crop-verification"
-                  element={<DataOperatorCropVerification />}
-                />
-                <Route
-                  path="/data-operator/register-farmer"
-                  element={<DataOperatorRegisterFarmer />}
-                />
-                <Route
-                  path="/data-operator/field-data"
-                  element={<DataOperatorFieldData />}
-                />
-                <Route
-                  path="/data-operator/field-data-collection"
-                  element={<DataOperatorFieldDataCollection />}
-                />
-                <Route
-                  path="/data-operator/reports"
-                  element={<DataOperatorReports />}
-                />
-                <Route
-                  path="/data-operator/statistics"
-                  element={<DataOperatorStatistics />}
-                />
-                <Route
-                  path="/data-operator/social-feed-reports"
-                  element={<SocialFeedReportMng />}
-                />
-                <Route
-                  path="/market-prices"
-                  element={
-                    <ProtectedRoute>
-                      <MarketPrices />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/agricultural-news"
-                  element={
-                    <ProtectedRoute>
-                      <AgriculturalNews />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/tts-demo"
-                  element={
-                    <ProtectedRoute>
-                      <TTSDemo />
-                    </ProtectedRoute>
-                  }
-                />
-                {/* Consultation System Routes */}
-                <Route
-                  path="/consultation"
-                  element={
-                    <ProtectedRoute>
-                      <ExpertListPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consultation/expert/:expertId"
-                  element={
-                    <ProtectedRoute>
-                      <ExpertProfilePage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consultation/book/:expertId"
-                  element={
-                    <ProtectedRoute>
-                      <BookAppointmentPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consultation/appointments"
-                  element={
-                    <ProtectedRoute>
-                      <MyAppointmentsPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consultation/appointment/:appointmentId"
-                  element={
-                    <ProtectedRoute>
-                      <AppointmentDetailsPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consultation/chat/:appointmentId"
-                  element={
-                    <ProtectedRoute>
-                      <ChatRoom />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consultation/call/:appointmentId"
-                  element={
-                    <ProtectedRoute>
-                      <VideoCallPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consultation/feedback/:appointmentId"
-                  element={
-                    <ProtectedRoute>
-                      <FeedbackPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consultation/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <ExpertConsultationDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consultation/availability"
-                  element={
-                    <ProtectedRoute>
-                      <ExpertAvailabilityPage />
-                    </ProtectedRoute>
-                  }
-                />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
+            <DataOperatorNotificationProvider>
+              <Toaster />
+              <Sonner />
+              <OfflineSyncHandler />
+              <ExpertHeartbeatHandler />
+              {showIntro && !hasShownIntro && (
+                <IntroAnimation onComplete={handleIntroComplete} duration={3500} />
+              )}
+              <BrowserRouter
+                basename={basename}
+                future={{
+                  v7_startTransition: true,
+                  v7_relativeSplatPath: true
+                }}
+              >
+                <Routes>
+                  <Route
+                    path="/login"
+                    element={
+                      <ProtectedRoute requireAuth={false}>
+                        <Login />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/register"
+                    element={
+                      <ProtectedRoute requireAuth={false}>
+                        <Register />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/"
+                    element={<Index />}
+                  />
+                  <Route
+                    path="/social-feed"
+                    element={
+                      <ProtectedRoute allowedTypes={['farmer', 'customer', 'expert']}>
+                        <SocialFeed />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/marketplace"
+                    element={
+                      <ProtectedRoute allowedTypes={['farmer', 'customer']}>
+                        <Marketplace />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/central-marketplace"
+                    element={
+                      <ProtectedRoute allowedTypes={['farmer', 'customer']}>
+                        <CentralMarketplace />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/diagnosis"
+                    element={
+                      <ProtectedRoute>
+                        <Diagnosis />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/recommendation"
+                    element={
+                      <ProtectedRoute>
+                        <Recommendation />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/news-feed"
+                    element={
+                      <ProtectedRoute>
+                        <NewsFeed />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/weather-planning"
+                    element={
+                      <ProtectedRoute>
+                        <WeatherPlanning />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/abhaowa-purbabhas"
+                    element={
+                      <ProtectedRoute>
+                        <WeatherForecast />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/consultation"
+                    element={
+                      <ProtectedRoute allowedTypes={['farmer', 'expert']}>
+                        <ExpertListPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/profile"
+                    element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/expert-dashboard"
+                    element={
+                      <ProtectedRoute allowedTypes={['expert']}>
+                        <ExpertDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/expert-profile"
+                    element={
+                      <ProtectedRoute allowedTypes={['expert']}>
+                        <ExpertProfile />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/customer-dashboard"
+                    element={
+                      <ProtectedRoute allowedTypes={['customer']}>
+                        <CustomerDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/customer-profile"
+                    element={
+                      <ProtectedRoute allowedTypes={['customer']}>
+                        <CustomerProfile />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/consultant-dashboard"
+                    element={
+                      <ProtectedRoute allowedTypes={['expert']}>
+                        <ConsultantDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/consultant-profile"
+                    element={
+                      <ProtectedRoute allowedTypes={['expert']}>
+                        <ConsultantProfile />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/farmer-dashboard"
+                    element={
+                      <ProtectedRoute allowedTypes={['farmer']}>
+                        <FarmerDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/data-operator"
+                    element={<DataOperatorAuth />}
+                  />
+                  <Route
+                    path="/data-operator/home"
+                    element={<DataOperatorHome />}
+                  />
+                  <Route
+                    path="/data-operator-dashboard"
+                    element={
+                      <ProtectedRoute allowedTypes={['data_operator']}>
+                        <DataOperatorDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/data-operator/profile-verification"
+                    element={
+                      <ProtectedRoute allowedTypes={['data_operator']}>
+                        <DataOperatorProfileVerification />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/data-operator/crop-verification"
+                    element={
+                      <ProtectedRoute allowedTypes={['data_operator']}>
+                        <DataOperatorCropVerification />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/data-operator/register-farmer"
+                    element={
+                      <ProtectedRoute allowedTypes={['data_operator']}>
+                        <DataOperatorRegisterFarmer />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/data-operator/field-data"
+                    element={
+                      <ProtectedRoute allowedTypes={['data_operator']}>
+                        <DataOperatorFieldData />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/data-operator/field-data-collection"
+                    element={
+                      <ProtectedRoute allowedTypes={['data_operator']}>
+                        <DataOperatorFieldDataCollection />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/data-operator/reports"
+                    element={
+                      <ProtectedRoute allowedTypes={['data_operator']}>
+                        <DataOperatorReports />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/data-operator/statistics"
+                    element={
+                      <ProtectedRoute allowedTypes={['data_operator']}>
+                        <DataOperatorStatistics />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/data-operator/field-data-statistics"
+                    element={
+                      <ProtectedRoute allowedTypes={['data_operator']}>
+                        <FieldDataStatisticsDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/data-operator/social-feed-reports"
+                    element={
+                      <ProtectedRoute allowedTypes={['data_operator']}>
+                        <SocialFeedReportMng />
+                      </ProtectedRoute>
+                    }
+                  />
+                  {/* <Route
+                    path="/market-prices"
+                    element={
+                      <ProtectedRoute>
+                        <MarketPrices />
+                      </ProtectedRoute>
+                    }
+                  /> */}
+                  {/* <Route
+                    path="/agricultural-news"
+                    element={
+                      <ProtectedRoute>
+                        <AgriculturalNews />
+                      </ProtectedRoute>
+                    }
+                  /> */}
+                  <Route
+                    path="/tts-demo"
+                    element={
+                      <ProtectedRoute>
+                        <TTSDemo />
+                      </ProtectedRoute>
+                    }
+                  />
+                  {/* Consultation System Routes */}
+                  <Route
+                    path="/consultation"
+                    element={
+                      <ProtectedRoute allowedTypes={['farmer', 'expert']}>
+                        <ExpertListPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/consultation/expert/:expertId"
+                    element={
+                      <ProtectedRoute allowedTypes={['farmer', 'expert']}>
+                        <ExpertProfilePage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/consultation/book/:expertId"
+                    element={
+                      <ProtectedRoute allowedTypes={['farmer', 'expert']}>
+                        <BookAppointmentPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/consultation/appointments"
+                    element={
+                      <ProtectedRoute allowedTypes={['farmer', 'expert']}>
+                        <MyAppointmentsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/consultation/appointment/:appointmentId"
+                    element={
+                      <ProtectedRoute allowedTypes={['farmer', 'expert']}>
+                        <AppointmentDetailsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/consultation/chat/:appointmentId"
+                    element={
+                      <ProtectedRoute allowedTypes={['farmer', 'expert']}>
+                        <ChatRoom />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/consultation/call/:appointmentId"
+                    element={
+                      <ProtectedRoute allowedTypes={['farmer', 'expert']}>
+                        <VideoCallPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/consultation/feedback/:appointmentId"
+                    element={
+                      <ProtectedRoute allowedTypes={['farmer', 'expert']}>
+                        <FeedbackPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/consultation/dashboard"
+                    element={
+                      <ProtectedRoute allowedTypes={['expert']}>
+                        <ExpertConsultationDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/consultation/availability"
+                    element={
+                      <ProtectedRoute allowedTypes={['expert']}>
+                        <ExpertAvailabilityPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </DataOperatorNotificationProvider>
           </NotificationProvider>
         </AuthProvider>
       </TooltipProvider>

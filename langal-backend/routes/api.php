@@ -6,7 +6,9 @@ use App\Http\Controllers\Api\FarmerAuthController;
 use App\Http\Controllers\Api\CustomerAuthController;
 use App\Http\Controllers\Api\ExpertAuthController;
 use App\Http\Controllers\Api\DataOperatorAuthController;
+use App\Http\Controllers\Api\DataOperatorNotificationController;
 use App\Http\Controllers\Api\FieldDataCollectionController;
+use App\Http\Controllers\Api\FieldDataStatisticsController;
 use App\Http\Controllers\Api\MarketplaceController;
 use App\Http\Controllers\Api\ImageUploadController;
 use App\Http\Controllers\Api\DocumentUploadController;
@@ -159,6 +161,9 @@ Route::prefix('data-operator')->group(function () {
         Route::post('/update-profile', [DataOperatorAuthController::class, 'updateProfile']);
         Route::post('/logout', [DataOperatorAuthController::class, 'logout']);
 
+        // Dashboard stats route
+        Route::get('/dashboard-stats', [DataOperatorAuthController::class, 'getDashboardStats']);
+
         // Profile verification routes
         Route::get('/farmers', [DataOperatorAuthController::class, 'getFarmers']);
         Route::get('/customers', [DataOperatorAuthController::class, 'getCustomers']);
@@ -177,6 +182,12 @@ Route::prefix('data-operator')->group(function () {
 
         // Manual farmer entry for field data collection
         Route::post('/field-data-farmers', [DataOperatorAuthController::class, 'createFieldDataFarmer']);
+
+        // Notification routes
+        Route::get('/notifications', [DataOperatorNotificationController::class, 'index']);
+        Route::get('/notifications/unread-count', [DataOperatorNotificationController::class, 'unreadCount']);
+        Route::post('/notifications/{id}/read', [DataOperatorNotificationController::class, 'markAsRead']);
+        Route::post('/notifications/read-all', [DataOperatorNotificationController::class, 'markAllAsRead']);
     });
 });
 
@@ -189,6 +200,12 @@ Route::prefix('field-data')->middleware('auth:sanctum')->group(function () {
     Route::put('/{id}', [FieldDataCollectionController::class, 'update']);
     Route::delete('/{id}', [FieldDataCollectionController::class, 'destroy']);
     Route::post('/{id}/verify', [FieldDataCollectionController::class, 'verify']);
+});
+
+// Field Data Statistics Routes (Protected - For Government Reports)
+Route::prefix('field-data-stats')->middleware('auth:sanctum')->group(function () {
+    Route::post('/comprehensive', [FieldDataStatisticsController::class, 'getComprehensiveStats']);
+    Route::post('/pdf-report', [FieldDataStatisticsController::class, 'getPdfReportData']);
 });
 
 // Test route for authenticated farmer

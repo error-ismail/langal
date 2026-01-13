@@ -556,9 +556,7 @@ class DataOperatorAuthController extends Controller
                         'father_name' => $profile->father_name ?? null,
                         'mother_name' => $profile->mother_name ?? null,
                         'phone_number' => $user->phone,
-                        'profile_photo_url_full' => $profile->profile_photo_url
-                            ? url('storage/' . $profile->profile_photo_url)
-                            : null,
+                        'profile_photo_url_full' => $this->getFullImageUrl($profile->profile_photo_url),
                         'date_of_birth' => $profile->date_of_birth,
                         'nid_number' => $profile->nid_number,
                         'village' => $profile->village,
@@ -651,12 +649,8 @@ class DataOperatorAuthController extends Controller
                         'father_name' => $profile->father_name,
                         'mother_name' => $profile->mother_name,
                         'phone_number' => $user->phone,
-                        'profile_photo_url_full' => $profile->profile_photo_url
-                            ? url('storage/' . $profile->profile_photo_url)
-                            : null,
-                        'nid_photo_url_full' => $profile->nid_photo_url
-                            ? url('storage/' . $profile->nid_photo_url)
-                            : null,
+                        'profile_photo_url_full' => $this->getFullImageUrl($profile->profile_photo_url),
+                        'nid_photo_url_full' => $this->getFullImageUrl($profile->nid_photo_url),
                         'date_of_birth' => $profile->date_of_birth,
                         'nid_number' => $profile->nid_number,
                         'village' => $profile->village,
@@ -766,9 +760,7 @@ class DataOperatorAuthController extends Controller
                         'user_id' => $user->user_id,
                         'full_name' => $profile->full_name,
                         'phone_number' => $user->phone,
-                        'profile_photo_url_full' => $profile->profile_photo_url
-                            ? url('storage/' . $profile->profile_photo_url)
-                            : null,
+                        'profile_photo_url_full' => $this->getFullImageUrl($profile->profile_photo_url),
                         'date_of_birth' => $profile->date_of_birth,
                         'nid_number' => $profile->nid_number,
                         'division' => $locationInfo['division'] ?? null,
@@ -781,9 +773,7 @@ class DataOperatorAuthController extends Controller
                         'experience_years' => $expertInfo && $expertInfo->experience_years ? (int)$expertInfo->experience_years : null,
                         'institution' => $expertInfo?->institution ?? null,
                         'license_number' => $expertInfo?->license_number ?? null,
-                        'certification_document_url' => $expertInfo && $expertInfo->certification_document 
-                            ? url('storage/' . $expertInfo->certification_document) 
-                            : null,
+                        'certification_document_url' => $this->getFullImageUrl($expertInfo?->certification_document),
                         'is_government_approved' => (bool)($expertInfo?->is_government_approved ?? false),
                         'rating' => $expertInfo && $expertInfo->rating ? (float)$expertInfo->rating : 0.0,
                         'total_consultations' => $expertInfo && $expertInfo->total_consultations ? (int)$expertInfo->total_consultations : 0,
@@ -1494,6 +1484,105 @@ class DataOperatorAuthController extends Controller
     }
 
     /**
+     * Get dashboard stats for data operator (pending profiles, reports, etc.)
+     */
+    public function getDashboardStats(Request $request): JsonResponse
+    {
+        try {
+            // Get pending profile counts for farmers, experts, customers
+            $pendingFarmers = DB::table('user_profiles')
+                ->join('users', 'user_profiles.user_id', '=', 'users.user_id')
+                ->where('users.user_type', 'farmer')
+                ->where('user_profiles.verification_status', 'pending')
+                ->count();
+
+            $pendingExperts = DB::table('user_profiles')
+                ->join('users', 'user_profiles.user_id', '=', 'users.user_id')
+                ->where('users.user_type', 'expert')
+                ->where('user_profiles.verification_status', 'pending')
+                ->count();
+
+            $pendingCustomers = DB::table('user_profiles')
+                ->join('users', 'user_profiles.user_id', '=', 'users.user_id')
+                ->where('users.user_type', 'customer')
+                ->where('user_profiles.verification_status', 'pending')
+                ->count();
+
+            $totalPendingProfiles = $pendingFarmers + $pendingExperts + $pendingCustomers;
+
+            // Get pending soil tests count (check if table exists)
+            $pendingSoilTests = 0;
+            try {
+                if (\Schema::hasTable('soil_test_reports')) {
+                    $pendingSoilTests = DB::table('soil_test_reports')
+                        ->whereNull('deleted_at')
+                        ->count();
+                }
+            } catch (\Exception $e) {
+                // Table might not exist
+            }
+
+            // Get today's field data collection count (check if table exists)
+            $todayFieldData = 0;
+            try {
+                if (\Schema::hasTable('field_data_collection')) {
+                    $todayFieldData = DB::table('field_data_collection')
+                        ->whereDate('created_at', now()->toDateString())
+                        ->count();
+                }
+            } catch (\Exception $e) {
+                // Table might not exist
+            }
+
+            // Get pending social feed reports count (check if tables exist)
+            $pendingReports = 0;
+            $pendingCommentReports = 0;
+            try {
+                if (\Schema::hasTable('post_reports')) {
+                    $pendingReports = DB::table('post_reports')
+                        ->where('status', 'pending')
+                        ->count();
+                }
+            } catch (\Exception $e) {
+                // Table might not exist
+            }
+
+            try {
+                if (\Schema::hasTable('comment_reports')) {
+                    $pendingCommentReports = DB::table('comment_reports')
+                        ->where('status', 'pending')
+                        ->count();
+                }
+            } catch (\Exception $e) {
+                // Table might not exist
+            }
+
+            $totalPendingReports = $pendingReports + $pendingCommentReports;
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'pending_profiles' => $totalPendingProfiles,
+                    'pending_farmers' => $pendingFarmers,
+                    'pending_experts' => $pendingExperts,
+                    'pending_customers' => $pendingCustomers,
+                    'pending_soil_tests' => $pendingSoilTests,
+                    'today_field_data' => $todayFieldData,
+                    'pending_reports' => $totalPendingReports,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Dashboard Stats Error: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch dashboard stats: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Get comprehensive statistics for government reporting
      * This API provides accurate data for charts, graphs, and reports
      */
@@ -1963,5 +2052,23 @@ class DataOperatorAuthController extends Controller
             'challenges' => $challenges,
         ];
     }
-}
 
+    /**
+     * Helper function to get full image URL from Azure Blob Storage
+     */
+    private function getFullImageUrl($imagePath)
+    {
+        if (empty($imagePath)) {
+            return null;
+        }
+
+        // If already a full URL, return as is
+        if (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')) {
+            return $imagePath;
+        }
+
+        // Build Azure Blob Storage URL
+        $azureStorageUrl = env('AZURE_STORAGE_URL', 'https://langal.blob.core.windows.net/public');
+        return rtrim($azureStorageUrl, '/') . '/' . ltrim($imagePath, '/');
+    }
+}
