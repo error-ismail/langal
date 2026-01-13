@@ -344,7 +344,7 @@ const ExpertProfilePage = () => {
                 <p className="text-gray-500">এখনও কোন রিভিউ নেই</p>
               </div>
             )}
-          </TabsContent> */
+          </TabsContent> */}
         </Tabs>
       </div>
 
